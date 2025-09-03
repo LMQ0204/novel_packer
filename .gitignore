@@ -1,0 +1,7 @@
+/target
+*.html
+*.json
+# *.js
+*.log
+*.txt
+*.epub
