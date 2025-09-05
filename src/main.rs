@@ -1,16 +1,16 @@
+// #![cfg_attr(debug_assertions, allow(dead_code, unused_imports, unused_variables, unused_mut))]
+
 mod core;
 mod source;
 mod utils;
 use std::io::stdin;
 
 use anyhow::Result;
-use visdom::Vis;
 
-use crate::{core::{get_struct::get_from_url, init::init}, source::bilinovel::download::download_chapter_singlefile, utils::{browser::browser_server::{BrowserConfig, BrowserServer}, download::downl::down::download_from_url, httpserver::{AppConfig, get_all_images, init_controller, start_server}}};
+use crate::{core::{get_struct::get_from_url, init::{init_logger, init_url_parser}}, utils::httpserver::get_all_images};
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let mut a = AppConfig::default();
     // a.set_send_to_rust(true);
     // a.set_regex_pattern(r"^https://img3\.readpai\.com/.*");
     // a.set_save_to_file(true);
@@ -27,12 +27,15 @@ async fn main() -> Result<()> {
     // }
     // let mut browser = BrowserServer::new(BrowserConfig::load("old.json")?)?;
     // browser.start().await?;
-    init();
+    init_url_parser();
+    #[cfg(debug_assertions)]
+    init_logger();
+    
     let mut a = get_from_url();
     a.check()?;
     a.display().await?;
     a.download().await?;
-    a.get_novel()?;
+    // a.get_novel()?;
     
     // let browser_server_url = browser.get_server_url();
     // let mut appconfig = AppConfig::default();

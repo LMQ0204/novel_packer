@@ -3,7 +3,7 @@
 // @namespace    https://example.com
 // @version      3.2
 // @description  全消息通信实现：显示隐藏内容+移除广告+等待下载完成（适配下载状态控制）
-// @author       您的名称
+// @author       
 // @match        *://*/*
 // @grant        none
 // ==/UserScript==
@@ -20,7 +20,7 @@
     SCROLL_DELAY: 1000,
     SCROLL_BEHAVIOR: "smooth",
     SCROLL_SPEED: 2500, // 默认1000像素/秒
-    MAX_WAIT_TIME: 180000, // 全局超时（120秒）
+    MAX_WAIT_TIME: 180000, // 全局超时（180秒）
     DOWNLOAD_TIMEOUT: 120000, // 下载超时（60秒）
     API_CHECK_TIMEOUT: 2000, // API检测超时（2秒）
     DOM_OPERATION_TIMEOUT: 20000, // DOM操作超时（20秒）
@@ -345,7 +345,6 @@
     );
   }
 
-
   // 启动下载并等待完成（增加下载状态检查）
   async function startDownloadAndWait() {
     try {
@@ -452,7 +451,6 @@
 
       console.log("滚动回页面顶部");
       await safeScrollToTop();
-      
 
       // 3. 检测扩展状态并决定处理方式
       const { available, isDownloadEnabled } = await checkExtensionAndStatus();

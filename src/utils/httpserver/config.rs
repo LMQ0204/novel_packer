@@ -8,7 +8,7 @@ pub struct ImageData {
     pub base64_data: String,
     pub filename: String,
     pub mime_type: String,
-    pub file_path: Option<String>, // 新增：保存的文件路径
+    pub file_path: Option<String>, 
 }
 
 /// 应用程序配置
@@ -19,7 +19,7 @@ pub struct AppConfig {
     pub wait_time: u32,
     pub send_to_rust: bool,
     pub server_port: u16,
-    pub save_to_file: bool, // 新增：是否保存图片到文件
+    pub save_to_file: bool, 
     pub open_download: bool
 }
 
@@ -29,7 +29,7 @@ impl Default for AppConfig {
             regex_pattern: String::new(),
             output_path: PathBuf::from("downloads"),
             wait_time: 1000,
-            send_to_rust: false,
+            send_to_rust: true,
             server_port: 8080,
             save_to_file: false, // 默认不保存到文件
             open_download: true
@@ -63,11 +63,11 @@ impl AppConfig {
         self.server_port = port;
     }
 
-    /// 新增：设置是否保存图片到文件
+    /// 设置是否保存图片到文件
     pub fn set_save_to_file(&mut self, save: bool) {
         self.save_to_file = save;
     }
-    /// 新增：设置是否开启扩展 
+    /// 设置是否开启扩展 
     pub fn set_open_download(&mut self, save: bool) {
         self.open_download = save;
     }

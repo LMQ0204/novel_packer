@@ -1,22 +1,35 @@
-use std::{collections::{HashMap, HashSet}, io::Cursor};
+pub mod default_css;
+use std::{
+    collections::{HashMap, HashSet},
+    io::Cursor,
+};
 
+use anyhow::Result;
 use epub_builder::{EpubBuilder, EpubContent, ReferenceType, ZipLibrary};
 use regex::Regex;
-use std::io::{Write, Seek};
-use anyhow::{Result};
+use std::io::{Seek, Write};
 
-use crate::{source::bilinovel::types::{Chapter, Novel}, utils::httpserver::ImageData};
-
-pub const BROKEN_IMAGE_BASE64: &str = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2ZmZiIvPjxjaXJjbGUgY3g9IjUwIiBjeT0iNTAiIHI9IjQwIiBmaWxsPSIjNzc3Ii8+PHBhdGggZD0iTTMwIDMwIEw3MCA3MCIgc3Ryb2tlPSIjMzMzIiBzdHJva2Utd2lkdGg9IjUiLz48cGF0aCBkPSJNMzAgNzAgTDcwIDMwIiBzdHJva2U9IiMzMzMiIHN0cm9rZS13aWR0aD0iNSIvPjwvc3ZnPg==";
+use crate::{
+    source::bilinovel::types::{Chapter, Novel},
+    utils::httpserver::ImageData,
+};
 
 pub struct EpubGenerator<'a> {
     novel: &'a Novel,
     images: &'a HashMap<String, ImageData>,
+    css: Option<String>, 
 }
 
 impl<'a> EpubGenerator<'a> {
     pub fn new(novel: &'a Novel, images: &'a HashMap<String, ImageData>) -> Self {
-        EpubGenerator { novel, images }
+        EpubGenerator { novel, images, css: None,}
+        
+    }
+
+    // 添加设置自定义CSS的方法
+    pub fn with_css(mut self, css: String) -> Self {
+        self.css = Some(css);
+        self
     }
 
     pub fn generate_epub<W: Write + Seek>(&self, output: W) -> Result<()> {
@@ -69,61 +82,18 @@ impl<'a> EpubGenerator<'a> {
             for label in &tags.span {
                 builder.metadata("subject", label)?;
             }
-            
         }
 
         Ok(())
     }
 
     fn add_stylesheet(&self, builder: &mut EpubBuilder<ZipLibrary>) -> Result<()> {
-        let css_content = r#"
-            body {
-                font-family: serif;
-                line-height: 1.6;
-                margin: 0;
-                padding: 1em;
-                text-align: justify;
-            }
-            h1 {
-                font-size: 1.5em;
-                text-align: center;
-                margin-bottom: 1em;
-                border-bottom: 1px solid #ccc;
-                padding-bottom: 0.5em;
-            }
-            .toc-title {
-                text-align: center;
-                font-size: 1.8em;
-                margin-bottom: 1em;
-            }
-            .toc-list {
-                list-style-type: none;
-                padding: 0;
-            }
-            .toc-item {
-                margin: 0.5em 0;
-            }
-            .toc-link {
-                text-decoration: none;
-                color: #0066cc;
-                display: block;
-                padding: 0.3em 0.5em;
-            }
-            .toc-link:hover {
-                background-color: #f0f0f0;
-            }
-            img {
-                max-width: 100%;
-                height: auto;
-                display: block;
-                margin: 0 auto;
-            }
-            p {
-                margin: 1em 0;
-                text-indent: 2em;
-            }
-        "#;
-
+        // 使用自定义CSS或默认CSS
+        let css_content = match &self.css {
+            Some(custom_css) => custom_css.as_str(),
+            None => default_css::DEFAULT_CSS,
+        };
+        
         builder.add_resource("styles.css", Cursor::new(css_content), "text/css")?;
         Ok(())
     }
@@ -139,14 +109,14 @@ impl<'a> EpubGenerator<'a> {
 
     fn add_chapter_images(&self, builder: &mut EpubBuilder<ZipLibrary>) -> Result<()> {
         let mut added_images = HashSet::new(); // 用于跟踪已添加的图片
-        
+
         for chapter in &self.novel.chapters {
             for image_url in &chapter.image {
                 // 跳过封面图片，因为它已经单独添加了
                 if image_url == &self.novel.cover {
                     continue;
                 }
-                
+
                 if let Some(image_data) = self.images.get(image_url) {
                     // 检查是否已经添加过这个图片
                     if !added_images.contains(&image_data.filename) {
@@ -154,7 +124,7 @@ impl<'a> EpubGenerator<'a> {
                         // 使用 Cursor 包装字节数据，使其实现 Read trait
                         let reader = Cursor::new(&image_data.u8_data);
                         builder.add_resource(&path, reader, &image_data.mime_type)?;
-                        
+
                         // 记录已添加的图片
                         added_images.insert(image_data.filename.clone());
                     }
@@ -172,7 +142,7 @@ impl<'a> EpubGenerator<'a> {
     <link rel="stylesheet" type="text/css" href="styles.css" />
 </head>
 <body>
-    <img src="cover.png" alt="封面图片" />
+    <img lass="cover-image" src="cover.png" alt="封面图片" />
 </body>
 </html>"#;
 
@@ -186,7 +156,8 @@ impl<'a> EpubGenerator<'a> {
 
     fn add_table_of_contents(&self, builder: &mut EpubBuilder<ZipLibrary>) -> Result<()> {
         let mut toc_content = String::new();
-        toc_content.push_str(r#"<!DOCTYPE html>
+        toc_content.push_str(
+            r#"<!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
     <title>目录</title>
@@ -194,7 +165,8 @@ impl<'a> EpubGenerator<'a> {
 </head>
 <body>
     <h1 class="toc-title">目录</h1>
-    <ul class="toc-list">"#);
+    <ul class="toc-list">"#,
+        );
 
         for (index, chapter) in self.novel.chapters.iter().enumerate() {
             let filename = format!("chapter_{:03}.xhtml", index + 1);
@@ -205,9 +177,11 @@ impl<'a> EpubGenerator<'a> {
             ));
         }
 
-        toc_content.push_str(r#"</ul>
+        toc_content.push_str(
+            r#"</ul>
 </body>
-</html>"#);
+</html>"#,
+        );
 
         builder.add_content(
             EpubContent::new("toc.xhtml", toc_content.as_bytes())
@@ -225,14 +199,13 @@ impl<'a> EpubGenerator<'a> {
             // 构建完整的 XHTML 文档
             let content = self.build_chapter_content(chapter)?;
 
-            let mut epub_content = EpubContent::new(&filename, content.as_bytes())
-                .title(title);
-            
+            let mut epub_content = EpubContent::new(&filename, content.as_bytes()).title(title);
+
             // 只有第一章标记为文本开始
             if index == 0 {
                 epub_content = epub_content.reftype(ReferenceType::Text);
             }
-            
+
             builder.add_content(epub_content)?;
         }
         Ok(())
@@ -277,23 +250,31 @@ pub fn clean_html(html: &str) -> Result<String> {
     cleaned = doctype_re.replace_all(&cleaned, "").to_string();
 
     // 2. 确保自闭合标签正确格式化
-    let self_closing_re = Regex::new(r"(?i)<(\s*)(meta|link|img|br|hr|input)(\s+[^>]*?)?(\s*)/?(\s*)>")?;
-    cleaned = self_closing_re.replace_all(&cleaned, |caps: &regex::Captures| {
-        let tag_name = caps[2].to_lowercase();
-        let attrs = caps.get(3).map_or("", |m| m.as_str());
-        format!("<{} {} />", tag_name, attrs.trim())
-    }).to_string();
+    let self_closing_re =
+        Regex::new(r"(?i)<(\s*)(meta|link|img|br|hr|input)(\s+[^>]*?)?(\s*)/?(\s*)>")?;
+    cleaned = self_closing_re
+        .replace_all(&cleaned, |caps: &regex::Captures| {
+            let tag_name = caps[2].to_lowercase();
+            let attrs = caps.get(3).map_or("", |m| m.as_str());
+            format!("<{} {} />", tag_name, attrs.trim())
+        })
+        .to_string();
 
     // 3. 补充XHTML命名空间
     let html_tag_re = Regex::new(r"(?i)<html\b([^>]*?)>")?;
-    cleaned = html_tag_re.replace_all(&cleaned, |caps: &regex::Captures| {
-        let existing_attrs = caps[1].to_string();
-        if existing_attrs.contains("xmlns=") {
-            format!("<html {}>", existing_attrs)
-        } else {
-            format!("<html xmlns=\"http://www.w3.org/1999/xhtml\" {}>", existing_attrs)
-        }
-    }).to_string();
+    cleaned = html_tag_re
+        .replace_all(&cleaned, |caps: &regex::Captures| {
+            let existing_attrs = caps[1].to_string();
+            if existing_attrs.contains("xmlns=") {
+                format!("<html {}>", existing_attrs)
+            } else {
+                format!(
+                    "<html xmlns=\"http://www.w3.org/1999/xhtml\" {}>",
+                    existing_attrs
+                )
+            }
+        })
+        .to_string();
 
     // 4. 移除脚本标签
     let script_re = Regex::new(r"(?is)<script\b[^>]*>.*?</script>")?;

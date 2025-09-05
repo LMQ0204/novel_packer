@@ -5,6 +5,7 @@ use crossterm::{
 };
 use std::io::{self, Write};
 
+///清除前面几行的内容
 pub fn clear_previous_line(num: u16) -> io::Result<()> {
     let mut stdout = io::stdout();
 

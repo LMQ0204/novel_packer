@@ -21,6 +21,12 @@ pub fn init_url_handlers() {
     // 注册更多处理器...
 }
 
-pub fn init() {
+///初始化注册表
+pub fn init_url_parser() {
     init_url_handlers();
+}
+
+/// 初始化日志系统
+pub fn init_logger() {
+    tracing_subscriber::fmt::init();
 }

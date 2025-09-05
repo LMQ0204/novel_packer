@@ -9,7 +9,6 @@ use tracing::error;
 #[derive(PartialEq, Debug, Clone)]
 pub struct DynamicConfig {
     inner: Value,
-    // config_path: PathBuf,
 }
 
 impl DynamicConfig {
@@ -207,41 +206,7 @@ impl DynamicConfig {
             ))
         }
     }
-
-    /// 将配置转换为命令行参数
-    // pub fn to_args(&self) -> Result<Vec<String>> {
-    //     let mut args = Vec::new();
-
-    //     if let Value::Object(map) = &self.inner {
-    //         for (key, value) in map {
-    //             let arg_name = format!("--{}", key);
-    //             args.push(arg_name);
-
-    //             // 根据值的类型决定是否添加值
-    //             match value {
-    //                 Value::Null => {
-    //                     // 对于 null，不添加值
-    //                 }
-    //                 Value::String(s) => {
-    //                     if !s.is_empty() {
-    //                         args.push(s.clone());
-    //                     }
-    //                 }
-    //                 _ => {
-    //                     // 对于其他类型，转换为字符串并添加
-    //                     args.push(value.to_string());
-    //                 }
-    //             }
-    //         }
-    //         Ok(args)
-    //     } else {
-    //         error!("DynamicConfig::to_args ->配置内部数据结构损坏，期望对象类型");
-    //         Err(anyhow!(
-    //             "DynamicConfig::to_args ->配置内部数据结构损坏，期望对象类型"
-    //         ))
-    //     }
-    // }
-
+    
     /// 获取可执行文件路径
     pub fn get_executable_path(&self) -> Option<String> {
         self.inner

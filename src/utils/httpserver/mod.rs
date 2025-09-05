@@ -116,11 +116,6 @@ pub fn get_server_port() -> Result<u16> {
     }
 }
 
-/// 初始化日志系统
-pub fn init_logger() {
-    env_logger::init();
-}
-
 pub fn update_config<F>(updater: F) -> Result<()>
 where
     F: FnOnce(&mut AppConfig),

@@ -6,7 +6,7 @@ use tracing::error;
 use url::Url;
 use visdom::Vis;
 
-use crate::{source::bilinovel::types::{Chapter, Novel, Tags}, utils::epub::BROKEN_IMAGE_BASE64};
+use crate::{source::bilinovel::types::{Chapter, Novel, Tags}, utils::epub::default_css::BROKEN_IMAGE_BASE64};
 
 ///提取章节内容，并处理img标签
 pub fn extract_chapter(html: &str, selector: &str, src_name: &str, remove_vec: Vec<&str>) -> Result<(Vec<String>, String)> {
@@ -43,9 +43,7 @@ pub fn extract_chapter(html: &str, selector: &str, src_name: &str, remove_vec: V
                     img_ele.set_attr("src", Some(BROKEN_IMAGE_BASE64));
                     src_vec.push(src_val);
                 }
-
-                // img_ele.set_attr("src", Some(&src_val));
-                // src_vec.push(src_val);
+                
             }
         } else {
             img_ele.set_attr("src", Some(BROKEN_IMAGE_BASE64));

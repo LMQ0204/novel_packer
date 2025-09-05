@@ -1,4 +1,6 @@
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
+use tracing::error;
+use tracing::info;
 use std::collections::HashMap;
 use std::fs;
 use std::fs::File;
@@ -6,7 +8,7 @@ use std::io::Cursor;
 use std::io::Write;
 use std::net::TcpStream;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, RwLock};
 use std::time::Duration;
 use tiny_http::{Header, Method, Request, Response, Server, StatusCode};
 
@@ -46,7 +48,7 @@ impl HttpServer {
     /// 运行服务器
     pub fn run(&self) -> Result<()> {
         let port = self.config.read().unwrap().server_port;
-        log::info!("HTTP server started on port {}", port);
+        info!("HTTP server started on port {}", port);
 
         // 使用非阻塞模式，以便定期检查停止标志
         self.server.unblock();
@@ -60,7 +62,7 @@ impl HttpServer {
 
                     // 发送响应
                     if let Err(e) = request.respond(response) {
-                        log::error!("Failed to send response: {}", e);
+                        error!("Failed to send response: {}", e);
                     }
                 }
                 Ok(None) => {
@@ -72,14 +74,14 @@ impl HttpServer {
                         // 非阻塞模式下正常，继续检查停止标志
                         continue;
                     } else {
-                        log::error!("Error receiving request: {}", e);
+                        error!("Error receiving request: {}", e);
                         break;
                     }
                 }
             }
         }
 
-        log::info!("HTTP server stopped");
+        info!("HTTP server stopped");
         Ok(())
     }
 
@@ -100,7 +102,7 @@ impl HttpServer {
 
     /// 处理停止请求
     fn handle_stop(&self, headers: Vec<Header>) -> Response<Cursor<Vec<u8>>> {
-        log::info!("Received stop request");
+        info!("Received stop request");
 
         // 在实际应用中，您可能需要更复杂的停止机制
         // 这里只是返回一个响应，不会实际停止服务器
@@ -164,7 +166,7 @@ impl HttpServer {
         let (status_code, message) = match result {
             Ok(filename) => (StatusCode(200), format!("Image processed: {}", filename)),
             Err(e) => {
-                log::error!("Upload error: {}", e);
+                error!("Upload error: {}", e);
                 (StatusCode(500), format!("Error: {}", e))
             }
         };

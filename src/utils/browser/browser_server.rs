@@ -1,14 +1,13 @@
+use reqwest::Client;
 use std::process::{Child, Command, Stdio};
 use std::time::Duration;
 use tokio::time;
-use reqwest::Client;
 
 use anyhow::{Context, Result, anyhow};
 use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::{Read, Write};
-use std::path::{Path};
-
+use std::path::Path;
 
 /// 浏览器服务器配置
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -43,7 +42,8 @@ fn default_health_check_interval() -> u64 {
 impl Default for BrowserConfig {
     fn default() -> Self {
         Self {
-            executable_path: r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe".to_string(),
+            executable_path: r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
+                .to_string(),
             port: 9223,
             user_data_dir: r"E:\BrowserProfiles".to_string(),
             headless: true,
@@ -61,8 +61,7 @@ impl BrowserConfig {
     /// 从文件加载配置
     pub fn load<P: AsRef<Path>>(path: P) -> Result<Self> {
         let path = path.as_ref();
-        let mut file = File::open(path)
-            .with_context(|| format!("无法打开配置文件: {:?}", path))?;
+        let mut file = File::open(path).with_context(|| format!("无法打开配置文件: {:?}", path))?;
 
         let mut contents = String::new();
         file.read_to_string(&mut contents)
@@ -77,11 +76,10 @@ impl BrowserConfig {
     /// 保存配置到文件
     pub fn save<P: AsRef<Path>>(&self, path: P) -> Result<()> {
         let path = path.as_ref();
-        let json_str = serde_json::to_string_pretty(self)
-            .context("序列化配置失败")?;
+        let json_str = serde_json::to_string_pretty(self).context("序列化配置失败")?;
 
-        let mut file = File::create(path)
-            .with_context(|| format!("创建配置文件失败: {:?}", path))?;
+        let mut file =
+            File::create(path).with_context(|| format!("创建配置文件失败: {:?}", path))?;
 
         file.write_all(json_str.as_bytes())
             .with_context(|| format!("写入配置文件失败: {:?}", path))?;
@@ -106,15 +104,7 @@ impl BrowserConfig {
 
         args
     }
-
-    /// 创建命令行
-    pub fn to_command(&self) -> std::process::Command {
-        let mut command = std::process::Command::new(&self.executable_path);
-        command.args(self.to_args());
-        command
-    }
 }
-
 
 /// 浏览器标签信息
 // #[derive(Debug, Deserialize)]
@@ -136,9 +126,8 @@ impl BrowserServer {
     /// 创建新的浏览器服务器实例
     pub fn new(config: BrowserConfig) -> Result<Self> {
         // 确保用户数据目录存在
-        std::fs::create_dir_all(&config.user_data_dir)
-            .context("无法创建用户数据目录")?;
-        
+        std::fs::create_dir_all(&config.user_data_dir).context("无法创建用户数据目录")?;
+
         Ok(BrowserServer {
             process: None,
             config,
@@ -149,34 +138,23 @@ impl BrowserServer {
     pub async fn start(&mut self) -> Result<()> {
         // 先停止可能已存在的实例
         self.stop();
-        
+
         // println!("正在启动浏览器服务器...");
-        
+
         let mut command = Command::new(&self.config.executable_path);
-        command
-            .args(self.config.to_args());
-            // .arg(format!("--remote-debugging-port={}", self.config.port))
-            // .arg(format!("--user-data-dir={}", self.config.user_data_dir))
-            // .arg("--no-sandbox")
-            // .arg("--disable-dev-shm-usage");
-            
-        // if self.config.headless {
-        //     command.arg("--headless");
-        // }
-        
-        command
-            .stdout(Stdio::null())
-            .stderr(Stdio::null());
-            
-        let child = command.spawn()
-            .context("启动浏览器进程失败")?;
-        
+        command.args(self.config.to_args());
+ 
+        command.stdout(Stdio::null()).stderr(Stdio::null());
+
+        let child = command.spawn().context("启动浏览器进程失败")?;
+
         self.process = Some(child);
-        
+
         // 等待服务器启动
-        self.wait_until_ready().await
+        self.wait_until_ready()
+            .await
             .context("浏览器服务器启动失败")?;
-        
+
         // println!("浏览器服务器已启动在端口 {}", self.config.port);
         Ok(())
     }
@@ -202,7 +180,7 @@ impl BrowserServer {
     pub async fn is_running(&self) -> bool {
         let client = Client::new();
         let url = format!("http://localhost:{}/json/version", self.config.port);
-        
+
         match client.get(&url).send().await {
             Ok(response) => response.status().is_success(),
             Err(_) => false,
@@ -214,40 +192,25 @@ impl BrowserServer {
         if let Some(mut process) = self.process.take() {
             // 先尝试正常终止
             let _ = process.kill();
-            
+
             // 等待进程结束
             match process.wait() {
-                Ok(status) => println!("浏览器进程已终止，退出状态: {}", status),
+                Ok(_status) => {
+                    // println!("浏览器进程已终止，退出状态: {}", status)
+                }
                 Err(e) => eprintln!("等待浏览器进程终止时出错: {}", e),
             }
         }
     }
-    
+
     /// 获取浏览器服务器地址
     pub fn get_server_url(&self) -> String {
         format!("http://localhost:{}", self.config.port)
     }
-    
+
     /// 获取配置信息
     pub fn get_config(&self) -> &BrowserConfig {
         &self.config
-    }
-    
-    /// 监控服务器状态
-    pub async fn monitor(&self, check_interval: u64) -> Result<()> {
-        let mut interval = time::interval(Duration::from_secs(check_interval));
-        
-        println!("开始监控浏览器服务器状态...");
-        
-        loop {
-            interval.tick().await;
-            
-            if !self.is_running().await {
-                return Err(anyhow!("浏览器服务器已停止运行"));
-            }
-            
-            println!("浏览器服务器运行正常");
-        }
     }
 }
 

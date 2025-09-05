@@ -1,11 +1,11 @@
 pub mod progress_monitor;
-use std::{sync::{Arc, atomic::AtomicUsize}, time::Instant};
+use std::sync::{Arc, atomic::AtomicUsize};
 
 use indicatif::{ProgressBar, ProgressStyle};
 
 use crate::utils::progressbar::progress_monitor::ProgressMonitor;
 
-// progress.rs
+
 pub struct ProgressMonitorBuilder {
     total: usize,
     template: Option<String>,

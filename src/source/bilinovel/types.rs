@@ -1,5 +1,4 @@
-use core::fmt;
-use std::{path::PathBuf};
+
 
 #[derive(Default, Debug)]
 pub struct BiliNovel {
@@ -11,7 +10,8 @@ pub struct BiliNovel {
     pub notice: String,
     pub description: String,
     pub volume: Vec<Novel>,
-    pub index: Vec<u8>
+    pub index: Vec<u8>,
+    pub config: DynamicConfig
 }
 
 #[derive(Default, Debug, Clone)]
@@ -23,12 +23,6 @@ pub struct Novel {
     pub tags: Option<Tags>,
     pub description: String,
     pub chapters: Vec<Chapter>,
-}
-
-#[derive(Default, Debug)]
-pub struct Image {
-    url: Option<url::Url>,
-    src: PathBuf
 }
 
 #[derive(Default, Debug, Clone)]
@@ -52,11 +46,6 @@ impl Tags {
     }
 }
 
-impl Image {
-    pub fn new() -> Self {
-        Image::default()
-    }
-}
 
 impl Chapter {
     pub fn new(url:&str, title: &str) -> Self {
@@ -85,6 +74,9 @@ impl BiliNovel {
     }
 }
 use colored::Colorize;
+use core::fmt;
+use crate::utils::config::DynamicConfig;
+
 impl fmt::Display for BiliNovel {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "{}\n", format!("{}",self.book_name).bright_yellow().bold())?;

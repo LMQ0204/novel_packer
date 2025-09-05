@@ -1,0 +1,9 @@
+{
+  "remove-hidden-elements": true,
+  "dump-content": true,
+  "output-json": true,
+  "browser-script": "./scripts/novel.js",
+  "block-images": true,
+  "browser-load-max-time": 240000,
+  "browser-capture-max-time": 240000
+}

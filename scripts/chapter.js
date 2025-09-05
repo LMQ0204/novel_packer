@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name         显示隐藏内容脚本（SingleFile修复版）
 // @namespace    https://example.com
-// @version      3.1
+// @version      3.2
 // @description  全消息通信实现：显示隐藏内容+移除广告+等待下载完成（适配下载状态控制）
-// @author       您的名称
+// @author       
 // @match        *://*/*
 // @grant        none
 // ==/UserScript==
@@ -16,13 +16,15 @@
 
   // 配置参数（基于扩展消息协议）
   const CONFIG = {
-    WAIT_AFTER_EXECUTION: 1,
+    WAIT_AFTER_EXECUTION: 1000,
     SCROLL_DELAY: 1000,
     SCROLL_BEHAVIOR: "smooth",
-    SCROLL_SPEED: 2500, // 默认1000像素/秒
+    SCROLL_SPEED: 3000, // 默认3000像素/秒
     MAX_WAIT_TIME: 120000, // 全局超时（120秒）
-    DOWNLOAD_TIMEOUT: 30000, // 下载超时（30秒）
+    DOWNLOAD_TIMEOUT: 60000, // 下载超时（120秒）
     API_CHECK_TIMEOUT: 2000, // API检测超时（2秒）
+    DOM_OPERATION_TIMEOUT: 20000, // DOM操作超时（20秒）
+    SCROLL_TIMEOUT: 30000, // 滚动超时（30秒）
     AD_SELECTORS: [
       "ins.adsbygoogle",
       'div[class*="ad"]',
@@ -59,73 +61,96 @@
     return `usr_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
   }
 
+  // 带超时的Promise包装器
+  function withTimeout(promise, timeoutMs, errorMessage = "操作超时") {
+    return Promise.race([
+      promise,
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error(errorMessage)), timeoutMs)
+      ),
+    ]);
+  }
+
+  // 安全的带超时的Promise包装器（超时后不会reject，只是继续执行）
+  function withSafeTimeout(promise, timeoutMs, operationName = "操作") {
+    return Promise.race([
+      promise,
+      new Promise((resolve) => {
+        setTimeout(() => {
+          console.warn(`${operationName}超时（超过${timeoutMs}ms），继续执行`);
+          resolve();
+        }, timeoutMs);
+      }),
+    ]);
+  }
+
   // 【核心】发送消息给扩展（通用函数）
   function sendExtensionMessage(action, data = {}) {
-    return new Promise((resolve, reject) => {
-      const msgId = generateId();
-      const timeout = setTimeout(() => {
-        reject(new Error(`消息超时（action: ${action}）`));
-      }, CONFIG.API_CHECK_TIMEOUT);
+    return withTimeout(
+      new Promise((resolve, reject) => {
+        const msgId = generateId();
 
-      // 监听扩展响应
-      const handleResponse = (event) => {
-        if (
-          event.source !== window ||
-          event.data.type !== CONFIG.MSG_TYPES.RESPONSE ||
-          event.data.id !== msgId
-        ) {
-          return;
-        }
+        // 监听扩展响应
+        const handleResponse = (event) => {
+          if (
+            event.source !== window ||
+            event.data.type !== CONFIG.MSG_TYPES.RESPONSE ||
+            event.data.id !== msgId
+          ) {
+            return;
+          }
 
-        clearTimeout(timeout);
-        window.removeEventListener("message", handleResponse);
+          window.removeEventListener("message", handleResponse);
 
-        if (event.data.success) {
-          resolve(event.data.data);
-        } else {
-          reject(new Error(`扩展响应失败: ${event.data.error || "未知错误"}`));
-        }
-      };
+          if (event.data.success) {
+            resolve(event.data.data);
+          } else {
+            reject(
+              new Error(`扩展响应失败: ${event.data.error || "未知错误"}`)
+            );
+          }
+        };
 
-      window.addEventListener("message", handleResponse);
+        window.addEventListener("message", handleResponse);
 
-      // 发送消息（匹配inject.js的消息格式）
-      window.postMessage(
-        {
-          type: CONFIG.MSG_TYPES.REQUEST,
-          id: msgId,
-          action: action,
-          data: data,
-        },
-        "*"
-      );
-    });
+        // 发送消息（匹配inject.js的消息格式）
+        window.postMessage(
+          {
+            type: CONFIG.MSG_TYPES.REQUEST,
+            id: msgId,
+            action: action,
+            data: data,
+          },
+          "*"
+        );
+      }),
+      CONFIG.API_CHECK_TIMEOUT,
+      `消息超时（action: ${action}）`
+    );
   }
 
   // 【核心】监听扩展事件（如下载完成/错误）
   function listenExtensionEvent(eventName) {
-    return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        window.removeEventListener("message", handleEvent);
-        reject(new Error(`事件监听超时（event: ${eventName}）`));
-      }, CONFIG.DOWNLOAD_TIMEOUT);
+    return withTimeout(
+      new Promise((resolve, reject) => {
+        const handleEvent = (event) => {
+          if (
+            event.source !== window ||
+            event.data.type !== CONFIG.MSG_TYPES.EVENT ||
+            event.data.event !== eventName
+          ) {
+            return;
+          }
 
-      const handleEvent = (event) => {
-        if (
-          event.source !== window ||
-          event.data.type !== CONFIG.MSG_TYPES.EVENT ||
-          event.data.event !== eventName
-        ) {
-          return;
-        }
+          window.removeEventListener("message", handleEvent);
+          resolve(event.data.data);
+        };
 
-        clearTimeout(timeout);
-        window.removeEventListener("message", handleEvent);
-        resolve(event.data.data);
-      };
-
-      window.addEventListener("message", handleEvent);
-    });
+        window.addEventListener("message", handleEvent);
+      }),
+      CONFIG.DOWNLOAD_TIMEOUT,
+      `事件监听超时（event: ${eventName}）`
+    );
   }
 
   // 检测扩展是否可用并获取当前下载状态
@@ -191,9 +216,7 @@
           requestAnimationFrame(animation);
         } else {
           // 等待滚动完全停止
-          setTimeout(() => {
-            isScrolling().then(resolve);
-          }, 100);
+          isScrolling().then(resolve);
         }
       }
 
@@ -209,97 +232,117 @@
     });
   }
 
-  // 滚动工具函数 - 保持与您的设计一致
+  // 滚动工具函数
   function scrollToBottom() {
-    // addLog("开始滚动到底部");
     if (CONFIG.SCROLL_BEHAVIOR === "auto") {
       window.scrollTo({
         top: document.body.scrollHeight,
         behavior: "auto",
       });
-      return Promise.resolve();
+      return isScrolling();
     } else {
       return scrollToPosition(document.body.scrollHeight);
     }
   }
 
   function scrollToTop() {
-    // addLog("开始滚动到顶部");
     if (CONFIG.SCROLL_BEHAVIOR === "auto") {
       window.scrollTo({
         top: 0,
         behavior: "auto",
       });
-      return Promise.resolve();
+      return isScrolling();
     } else {
       return scrollToPosition(0);
     }
   }
 
-  // // 滚动工具函数
-  // function scrollToBottom() {
-  //   window.scrollTo({
-  //     top: document.body.scrollHeight,
-  //     behavior: CONFIG.SCROLL_BEHAVIOR,
-  //   });
-  // }
+  // 安全的滚动函数（超时不会中断流程）
+  function safeScrollToBottom() {
+    return withSafeTimeout(
+      scrollToBottom(),
+      CONFIG.SCROLL_TIMEOUT,
+      "滚动到底部"
+    );
+  }
 
-  // function scrollToTop() {
-  //   window.scrollTo({
-  //     top: 0,
-  //     behavior: CONFIG.SCROLL_BEHAVIOR,
-  //   });
-  // }
+  function safeScrollToTop() {
+    return withSafeTimeout(scrollToTop(), CONFIG.SCROLL_TIMEOUT, "滚动到顶部");
+  }
 
   // 显示隐藏内容 + 移除广告（返回Promise）
   function showHiddenElements() {
-    return new Promise((resolve) => {
-      console.log("开始显示隐藏内容并移除广告...");
+    return withSafeTimeout(
+      new Promise((resolve) => {
+        console.log("开始显示隐藏内容并移除广告...");
 
-      // 使用MutationObserver等待DOM操作完成
-      const observer = new MutationObserver(() => {
-        observer.disconnect();
-        resolve();
-      });
-
-      observer.observe(document.body, {
-        childList: true,
-        subtree: true,
-        attributes: true,
-      });
-
-      // 移除广告
-      CONFIG.AD_SELECTORS.forEach((selector) => {
-        document.querySelectorAll(selector).forEach((el) => {
-          el.style.display = "none";
-          console.log(`已隐藏广告元素: ${selector}`);
+        // 使用MutationObserver等待DOM操作完成
+        const observer = new MutationObserver(() => {
+          observer.disconnect();
+          resolve();
         });
-      });
 
-      // 显示隐藏内容
-      CONFIG.HIDDEN_SELECTORS.forEach((selector) => {
-        document.querySelectorAll(selector).forEach((el) => {
-          el.style.display = "block";
-          console.log(`已显示隐藏元素: ${selector}`);
+        observer.observe(document.body, {
+          childList: true,
+          subtree: true,
+          attributes: true,
         });
-      });
 
-      // 如果没有找到任何元素，立即resolve
-      setTimeout(resolve, 0);
-    });
+        // 移除广告
+        CONFIG.AD_SELECTORS.forEach((selector) => {
+          document.querySelectorAll(selector).forEach((el) => {
+            el.style.display = "none";
+            console.log(`已隐藏广告元素: ${selector}`);
+          });
+        });
+
+        // 显示隐藏内容
+        CONFIG.HIDDEN_SELECTORS.forEach((selector) => {
+          document.querySelectorAll(selector).forEach((el) => {
+            el.style.display = "block";
+            console.log(`已显示隐藏元素: ${selector}`);
+          });
+        });
+
+        // 如果没有找到任何元素，立即resolve
+        setTimeout(resolve, 0);
+      }),
+      CONFIG.DOM_OPERATION_TIMEOUT,
+      "DOM操作超时"
+    );
   }
 
-  // 封装为返回 Promise 的函数
   function addOriginalSrcToImagesAsync() {
-    return new Promise((resolve) => {
-      document.querySelectorAll("img").forEach((img) => {
-        if (img.src) {
-          img.setAttribute("data-original-src", img.src);
-          console.log(`已为图片添加属性: ${img.src}`);
-        }
-      });
-      resolve(); // 同步操作完成后立即 resolve
-    });
+    return withSafeTimeout(
+      new Promise((resolve) => {
+        document.querySelectorAll("img").forEach((img) => {
+          // 1. 优先获取 data-src 属性（存在且非空则用它）
+          const dataSrc = img.getAttribute("data-src");
+          let targetSrc;
+
+          if (dataSrc) {
+            targetSrc = dataSrc;
+          }
+          // 2. data-src 为空/不存在时， fallback 到 img.src
+          else if (img.src) {
+            targetSrc = img.src;
+          }
+
+          // 3. 有有效数据源时，才添加 data-original-src 属性
+          if (targetSrc) {
+            img.setAttribute("data-original-src", targetSrc);
+            console.log(
+              `已为图片添加属性: 来源=${
+                dataSrc ? "data-src" : "src"
+              }, 值=${targetSrc}`
+            );
+          }
+        });
+        resolve(); // 同步操作完成后 resolve
+      }),
+      5000,
+      "添加图片属性超时"
+    );
   }
 
   // 启动下载并等待完成（增加下载状态检查）
@@ -336,7 +379,7 @@
         throw new Error("下载功能已禁用，无法执行下载操作");
       }
       // 处理超时
-      if (error.message.includes("事件监听超时")) {
+      if (error.message.includes("超时")) {
         await sendExtensionMessage("stopDownload").catch(() => {});
         throw new Error(`下载超时（超过${CONFIG.DOWNLOAD_TIMEOUT}ms）`);
       }
@@ -400,23 +443,14 @@
       console.log("=== 开始SingleFile预处理 ===");
 
       // 1. 显示隐藏内容 + 移除广告
-      showHiddenElements();
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      await showHiddenElements();
 
       // 2. 滚动触发懒加载
       console.log("滚动到页面底部（触发懒加载）");
-      await scrollToBottom();
-      // await new Promise((resolve) => setTimeout(resolve, CONFIG.SCROLL_DELAY));
+      await safeScrollToBottom();
 
-      // console.log("滚动回页面顶部");
-      // await scrollToTop();
-      // await new Promise((resolve) => setTimeout(resolve, CONFIG.SCROLL_DELAY));
-
-      // 4. 最终等待
-      console.log(`等待${CONFIG.WAIT_AFTER_EXECUTION}ms确保资源就绪`);
-      await new Promise((resolve) =>
-        setTimeout(resolve, CONFIG.WAIT_AFTER_EXECUTION)
-      );
+      console.log("滚动回页面顶部");
+      await safeScrollToTop();
 
       // 3. 检测扩展状态并决定处理方式
       const { available, isDownloadEnabled } = await checkExtensionAndStatus();
@@ -429,14 +463,15 @@
         // useAlternativeImageProcessing();
       }
 
+      // 4. 添加图片属性
       console.log("开始添加图片属性...");
-      await addOriginalSrcToImagesAsync(); // 等待执行完成
+      await addOriginalSrcToImagesAsync();
 
+      // 5. 最终等待
       console.log(`等待${CONFIG.WAIT_AFTER_EXECUTION}ms确保资源就绪`);
       await new Promise((resolve) =>
         setTimeout(resolve, CONFIG.WAIT_AFTER_EXECUTION)
       );
-
 
       // 通知SingleFile开始捕获
       console.log("=== 预处理完成，通知SingleFile捕获 ===");

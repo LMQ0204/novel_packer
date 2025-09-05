@@ -1,0 +1,4 @@
+{
+    "max-concurrent":6,
+    "check-rounds":100
+}

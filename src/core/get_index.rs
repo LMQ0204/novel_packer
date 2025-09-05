@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use anyhow::{Result, anyhow};
 
 /// 从用户输入提取数字（支持空格分隔和 a-b 范围格式），并自动去重
-/// 输入示例："1 3-5 3 7-9 8" → 输出：[1, 3, 4, 5, 7, 8, 9]
+/// 输入示例："1 3-5 3 7-9 8" → 输出：1, 3, 4, 5, 7, 8, 9
 pub fn get_index_from_stdin(input: &str) -> Result<Vec<u8>> {
     let mut result = HashSet::new(); // 使用HashSet自动去重
 

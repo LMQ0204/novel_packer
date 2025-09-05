@@ -1,0 +1,17 @@
+{
+  "executable_path": "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+  "port": 9223,
+  "user_data_dir": "E:\\BrowserProfiles",
+  "headless": false,
+  "additional_args": [
+    "--disable-dev-shm-usage",
+    "--profile-directory=Default",
+    "--disable-renderer-backgrounding",
+    "--disable-background-timer-throttling",
+    "--no-first-run",
+    "--disable-notifications",
+    "--headless=new"
+  ],
+  "startup_timeout": 30,
+  "health_check_interval": 5
+}

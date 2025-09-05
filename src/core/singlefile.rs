@@ -8,18 +8,16 @@ use async_trait::async_trait; // 导入宏
 pub trait Singlefile: Send + Sync {
     fn check(&self) -> Result<()> {
         let mut config = DynamicConfig::new();
-        config.load(PathBuf::from("config.json")).unwrap_or_else(|e| {
+        config.load(PathBuf::from("./config/config.json")).unwrap_or_else(|e| {
             warn!("{}",e);
         });
         check_single_file::check_exe("single-file.exe", config)
             .map_err(|s| anyhow!("{}", s))
             
     }
-    fn init(&mut self) -> Result<()>;
     async fn display(&mut self) -> Result<()>;
     async fn download(&mut self) -> Result<()>;
-    // async fn check_novel(&mut self) -> Result<()>;
-    fn get_novel(&self) -> Result<()>;
-    // fn extract();
+    // fn get_novel(&self) -> Result<()>;
+
 }
 

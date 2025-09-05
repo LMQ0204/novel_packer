@@ -17,20 +17,17 @@ pub fn get_struct_by_url(url: &str) -> Result<Box<dyn Singlefile>> {
         return Ok(handler(url.to_string()));
     }
 
-    // 返回错误而不是默认值
     Err(anyhow!("不支持的网站: {}", host))
 }
 
 //从输入读取url
 pub fn read_url_from_stdin() -> String {
-    // let mut stdout = std::io::stdout();
-    // println!("\n请输入URL(回车确定)[目前只支持哔哩轻小说]:");
     let use_input = loop {
         println!("请输入URL(回车确定)[目前只支持哔哩轻小说]:");
         let mut input = String::new();
         match std::io::stdin().read_line(&mut input) {
             Ok(_bytes_read) => {
-                // 读取成功，返回去除换行符的 String（用 filter 排除空输入）
+                // 读取成功，返回去除换行符的 String
                 let trimmed = input.trim().to_string();
                 if trimmed.is_empty() {
                     clear_previous_line(3).unwrap_or_else(|e| eprintln!("清除屏幕失败：{}", e));

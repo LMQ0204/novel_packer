@@ -1,8 +1,9 @@
 /target
 *.html
-*.json
+# *.json
 # *.js
 *.log
 *.txt
 *.epub
 *.jpg
+/temp

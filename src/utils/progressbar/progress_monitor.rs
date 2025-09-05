@@ -1,11 +1,10 @@
 // use crossterm::style::Stylize;
 // progress.rs
 use indicatif::{ProgressBar, ProgressStyle};
-use std::sync::{
+use std::{sync::{
     Arc,
     atomic::{AtomicUsize, Ordering},
-};
-use tokio::sync::Mutex;
+}, time::Duration};
 
 /// 进度监控器
 #[derive(Clone)]
@@ -25,12 +24,13 @@ impl ProgressMonitor {
         // 设置模板，将前缀放在最前面
         pb.set_style(
             ProgressStyle::default_bar()
-                .template("{prefix:.cyan} {spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta}) {msg}")
+                .template("{prefix:.cyan} {spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} {msg}")
                 .unwrap()
                 .progress_chars("#>-"),
         );
 
         pb.set_prefix(prefix.to_owned()); // 设置前缀
+        pb.enable_steady_tick(Duration::from_millis(100)); // 启用定期刷新
 
         Self {
             pb: Arc::new(pb),
@@ -94,8 +94,37 @@ impl ProgressMonitor {
         }
     }
 
-    /// 完成进度监控，显示错误统计
+    /// 完成进度监控，显示错误统计，但不消失
     pub fn finish(&self) {
+        let errors = self.error_count();
+        
+        // 设置最终消息，但不调用finish_with_message，这样进度条不会消失
+        if errors > 0 {
+            self.pb.set_message(format!("完成! ({} 个错误)", errors));
+        } else {
+            self.pb.set_message("完成!");
+        }
+        
+        // 确保进度条显示100%
+        self.pb.set_position(self.total as u64);
+        
+        // 禁用自动刷新，但保持显示
+        self.pb.disable_steady_tick();
+        
+        // 输出统计信息
+        println!();
+        // println!("任务完成: {}/{} ({}%)", 
+        //     self.completed_count(), 
+        //     self.total, 
+        //     self.percentage()
+        // );
+        // if errors > 0 {
+        //     println!("错误数: {}", errors);
+        // }
+    }
+
+    /// 强制完成并隐藏进度条（如果需要）
+    pub fn finish_and_hide(&self) {
         let errors = self.error_count();
         if errors > 0 {
             self.pb
