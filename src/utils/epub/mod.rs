@@ -1,289 +1,303 @@
-use anyhow::{anyhow, Result};
+use std::{collections::{HashMap, HashSet}, io::Cursor};
+
 use epub_builder::{EpubBuilder, EpubContent, ReferenceType, ZipLibrary};
 use regex::Regex;
-use std::io::{self, Cursor};
-use std::path::Path;
+use std::io::{Write, Seek};
+use anyhow::{Result};
 
-/// EPUB 配置选项
-#[derive(Clone, Debug)]
-pub struct EpubConfig {
-    pub title: String,
-    pub author: String,
-    pub language: String,
-    pub css: Option<String>,
-    pub add_cover: bool,
-    pub add_toc: bool,
+use crate::{source::bilinovel::types::{Chapter, Novel}, utils::httpserver::ImageData};
+
+pub const BROKEN_IMAGE_BASE64: &str = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2ZmZiIvPjxjaXJjbGUgY3g9IjUwIiBjeT0iNTAiIHI9IjQwIiBmaWxsPSIjNzc3Ii8+PHBhdGggZD0iTTMwIDMwIEw3MCA3MCIgc3Ryb2tlPSIjMzMzIiBzdHJva2Utd2lkdGg9IjUiLz48cGF0aCBkPSJNMzAgNzAgTDcwIDMwIiBzdHJva2U9IiMzMzMiIHN0cm9rZS13aWR0aD0iNSIvPjwvc3ZnPg==";
+
+pub struct EpubGenerator<'a> {
+    novel: &'a Novel,
+    images: &'a HashMap<String, ImageData>,
 }
 
-impl Default for EpubConfig {
-    fn default() -> Self {
-        Self {
-            title: "Untitled".to_string(),
-            author: "Unknown".to_string(),
-            language: "zh-CN".to_string(),
-            css: None,
-            add_cover: true,
-            add_toc: true,
-        }
+impl<'a> EpubGenerator<'a> {
+    pub fn new(novel: &'a Novel, images: &'a HashMap<String, ImageData>) -> Self {
+        EpubGenerator { novel, images }
     }
-}
 
-/// EPUB 书籍构建器
-pub struct EpubBook {
-    config: EpubConfig,
-    chapters: Vec<Chapter>,
-}
+    pub fn generate_epub<W: Write + Seek>(&self, output: W) -> Result<()> {
+        let mut builder = EpubBuilder::new(ZipLibrary::new()?)?;
+        builder.epub_version(epub_builder::EpubVersion::V30);
 
-/// 章节结构
-#[derive(Clone, Debug)]
-pub struct Chapter {
-    pub title: String,
-    pub content: String,
-    pub filename: Option<String>,
-}
-
-impl Chapter {
-    /// 创建新章节
-    pub fn new<T: Into<String>, C: Into<String>>(title: T, content: C) -> Self {
-        Self {
-            title: title.into(),
-            content: content.into(),
-            filename: None,
-        }
-    }
-    
-    /// 设置自定义文件名
-    pub fn with_filename<T: Into<String>>(mut self, filename: T) -> Self {
-        self.filename = Some(filename.into());
-        self
-    }
-}
-
-impl EpubBook {
-    /// 创建新的 EPUB 书籍
-    pub fn new<T: Into<String>, A: Into<String>>(title: T, author: A) -> Self {
-        Self {
-            config: EpubConfig {
-                title: title.into(),
-                author: author.into(),
-                ..Default::default()
-            },
-            chapters: Vec::new(),
-        }
-    }
-    
-    /// 使用配置创建 EPUB 书籍
-    pub fn with_config(config: EpubConfig) -> Self {
-        Self {
-            config,
-            chapters: Vec::new(),
-        }
-    }
-    
-    /// 添加章节
-    pub fn add_chapter(&mut self, chapter: Chapter) -> &mut Self {
-        self.chapters.push(chapter);
-        self
-    }
-    
-    /// 添加多个章节
-    pub fn add_chapters(&mut self, chapters: Vec<Chapter>) -> &mut Self {
-        self.chapters.extend(chapters);
-        self
-    }
-    
-    /// 设置配置
-    pub fn set_config(&mut self, config: EpubConfig) -> &mut Self {
-        self.config = config;
-        self
-    }
-    
-    /// 生成 EPUB 文件
-    pub fn generate<P: AsRef<Path>>(&self, output_path: P) -> Result<()> {
-        // 初始化 EPUB 构建器
-        let zip = ZipLibrary::new()?;
-        let mut builder = EpubBuilder::new(zip)?;
-        
         // 设置元数据
-        builder.metadata("title", &self.config.title)?;
-        builder.metadata("author", &self.config.author)?;
-        
-        // 添加样式
-        let css_content = self.config.css.as_deref().unwrap_or(DEFAULT_CSS);
-        builder.stylesheet(Cursor::new(css_content.as_bytes()))?;
-        
-        // 添加封面
-        if self.config.add_cover {
-            self.add_cover_page(&mut builder)?;
-        }
-        
-        // 添加目录
-        if self.config.add_toc && !self.chapters.is_empty() {
-            self.add_table_of_contents(&mut builder)?;
-        }
-        
-        // 添加章节
-        for (i, chapter) in self.chapters.iter().enumerate() {
-            self.add_chapter_to_builder(&mut builder, chapter, i)?;
-        }
-        
-        // 生成 EPUB 文件
-        let mut file = std::fs::File::create(output_path)?;
-        builder.generate(&mut file)?;
-        
+        self.set_metadata(&mut builder)?;
+
+        // 添加CSS样式表
+        self.add_stylesheet(&mut builder)?;
+
+        // 添加封面图片
+        self.add_cover_image(&mut builder)?;
+
+        // 添加所有章节中引用的图片资源
+        self.add_chapter_images(&mut builder)?;
+
+        // 添加封面页面
+        self.add_cover_page(&mut builder)?;
+
+        // 添加目录页面
+        self.add_table_of_contents(&mut builder)?;
+
+        // 添加章节内容
+        self.add_chapters(&mut builder)?;
+
+        builder.generate(output)?;
         Ok(())
     }
-    
-    /// 添加封面页
-    fn add_cover_page(&self, builder: &mut EpubBuilder<ZipLibrary>) -> Result<()> {
-        let cover_content = format!(
-            r#"<div style="text-align: center; margin-top: 30%;">
-                <h1>{}</h1>
-                <h2>{}</h2>
-            </div>"#,
-            self.config.title, self.config.author
-        );
-        
-        let cover_xhtml = wrap_xhtml("封面", &cover_content);
-        
-        // 使用链式调用，因为 title 和 reftype 方法会消耗 self 并返回新的实例
-        let cover = EpubContent::new("cover.xhtml", Cursor::new(cover_xhtml.as_bytes()))
-            .title("封面")
-            .reftype(ReferenceType::Cover);
-        
-        builder.add_content(cover)?;
-        
+
+    fn set_metadata(&self, builder: &mut EpubBuilder<ZipLibrary>) -> Result<()> {
+        builder.metadata("title", &self.novel.name)?;
+        builder.metadata("author", &self.novel.author)?;
+        builder.metadata("lang", "zh-CN")?;
+        // builder.metadata("identifier", &Uuid::new_v4().to_string())?;
+        // builder.metadata("date", &Utc::now().to_rfc3339())?;
+
+        if !self.novel.description.is_empty() {
+            builder.metadata("description", &self.novel.description)?;
+        }
+
+        if let Some(tags) = &self.novel.tags {
+            if !tags.state.is_empty() {
+                builder.metadata("subject", &tags.state)?;
+            }
+            for label in &tags.label {
+                builder.metadata("subject", label)?;
+            }
+            for label in &tags.span {
+                builder.metadata("subject", label)?;
+            }
+            
+        }
+
         Ok(())
     }
-    
-    /// 添加目录
-    fn add_table_of_contents(&self, builder: &mut EpubBuilder<ZipLibrary>) -> Result<()> {
-        let mut toc_items = String::new();
-        for (i, chapter) in self.chapters.iter().enumerate() {
-            let default_filename = format!("chapter_{}.xhtml", i + 1);
-            let filename = chapter.filename.as_deref()
-                .unwrap_or(&default_filename);
+
+    fn add_stylesheet(&self, builder: &mut EpubBuilder<ZipLibrary>) -> Result<()> {
+        let css_content = r#"
+            body {
+                font-family: serif;
+                line-height: 1.6;
+                margin: 0;
+                padding: 1em;
+                text-align: justify;
+            }
+            h1 {
+                font-size: 1.5em;
+                text-align: center;
+                margin-bottom: 1em;
+                border-bottom: 1px solid #ccc;
+                padding-bottom: 0.5em;
+            }
+            .toc-title {
+                text-align: center;
+                font-size: 1.8em;
+                margin-bottom: 1em;
+            }
+            .toc-list {
+                list-style-type: none;
+                padding: 0;
+            }
+            .toc-item {
+                margin: 0.5em 0;
+            }
+            .toc-link {
+                text-decoration: none;
+                color: #0066cc;
+                display: block;
+                padding: 0.3em 0.5em;
+            }
+            .toc-link:hover {
+                background-color: #f0f0f0;
+            }
+            img {
+                max-width: 100%;
+                height: auto;
+                display: block;
+                margin: 0 auto;
+            }
+            p {
+                margin: 1em 0;
+                text-indent: 2em;
+            }
+        "#;
+
+        builder.add_resource("styles.css", Cursor::new(css_content), "text/css")?;
+        Ok(())
+    }
+
+    fn add_cover_image(&self, builder: &mut EpubBuilder<ZipLibrary>) -> Result<()> {
+        if let Some(image_data) = self.images.get(&self.novel.cover) {
+            // 使用 Cursor 包装字节数据，使其实现 Read trait
+            let reader = Cursor::new(&image_data.u8_data);
+            builder.add_cover_image("cover.png", reader, &image_data.mime_type)?;
+        }
+        Ok(())
+    }
+
+    fn add_chapter_images(&self, builder: &mut EpubBuilder<ZipLibrary>) -> Result<()> {
+        let mut added_images = HashSet::new(); // 用于跟踪已添加的图片
+        
+        for chapter in &self.novel.chapters {
+            for image_url in &chapter.image {
+                // 跳过封面图片，因为它已经单独添加了
+                if image_url == &self.novel.cover {
+                    continue;
+                }
                 
-            toc_items.push_str(&format!(
-                "<li><a href=\"{}\">{}</a></li>",
-                filename, chapter.title
+                if let Some(image_data) = self.images.get(image_url) {
+                    // 检查是否已经添加过这个图片
+                    if !added_images.contains(&image_data.filename) {
+                        let path = format!("images/{}", image_data.filename);
+                        // 使用 Cursor 包装字节数据，使其实现 Read trait
+                        let reader = Cursor::new(&image_data.u8_data);
+                        builder.add_resource(&path, reader, &image_data.mime_type)?;
+                        
+                        // 记录已添加的图片
+                        added_images.insert(image_data.filename.clone());
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn add_cover_page(&self, builder: &mut EpubBuilder<ZipLibrary>) -> Result<()> {
+        let cover_content = r#"<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>封面</title>
+    <link rel="stylesheet" type="text/css" href="styles.css" />
+</head>
+<body>
+    <img src="cover.png" alt="封面图片" />
+</body>
+</html>"#;
+
+        builder.add_content(
+            EpubContent::new("cover.xhtml", cover_content.as_bytes())
+                .title("封面")
+                .reftype(ReferenceType::Cover),
+        )?;
+        Ok(())
+    }
+
+    fn add_table_of_contents(&self, builder: &mut EpubBuilder<ZipLibrary>) -> Result<()> {
+        let mut toc_content = String::new();
+        toc_content.push_str(r#"<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>目录</title>
+    <link rel="stylesheet" type="text/css" href="styles.css" />
+</head>
+<body>
+    <h1 class="toc-title">目录</h1>
+    <ul class="toc-list">"#);
+
+        for (index, chapter) in self.novel.chapters.iter().enumerate() {
+            let filename = format!("chapter_{:03}.xhtml", index + 1);
+            toc_content.push_str(&format!(
+                r#"<li class="toc-item"><a class="toc-link" href="{}">{}</a></li>"#,
+                filename,
+                escape_xml(&chapter.title)
             ));
         }
-        
-        let toc_html = format!(
-            r#"<ol>{}</ol>"#,
-            toc_items
-        );
-        
-        let toc_xhtml = wrap_xhtml("目录", &toc_html);
-        
-        // 使用链式调用
-        let toc = EpubContent::new("toc.xhtml", Cursor::new(toc_xhtml.as_bytes()))
-            .title("目录");
-        
-        builder.add_content(toc)?;
-        
+
+        toc_content.push_str(r#"</ul>
+</body>
+</html>"#);
+
+        builder.add_content(
+            EpubContent::new("toc.xhtml", toc_content.as_bytes())
+                .title("目录")
+                .reftype(ReferenceType::Toc),
+        )?;
         Ok(())
     }
-    
-    /// 添加章节到构建器
-    fn add_chapter_to_builder(
-        &self, 
-        builder: &mut EpubBuilder<ZipLibrary>, 
-        chapter: &Chapter, 
-        index: usize
-    ) -> Result<()> {
-        let default_filename = format!("chapter_{}.xhtml", index + 1);
-        let filename = chapter.filename.as_deref()
-            .unwrap_or(&default_filename);
+
+    fn add_chapters(&self, builder: &mut EpubBuilder<ZipLibrary>) -> Result<()> {
+        for (index, chapter) in self.novel.chapters.iter().enumerate() {
+            let filename = format!("chapter_{:03}.xhtml", index + 1);
+            let title = &chapter.title;
+
+            // 构建完整的 XHTML 文档
+            let content = self.build_chapter_content(chapter)?;
+
+            let mut epub_content = EpubContent::new(&filename, content.as_bytes())
+                .title(title);
             
-        let xhtml_content = wrap_xhtml(&chapter.title, &chapter.content);
-        
-        // 使用链式调用
-        let content = EpubContent::new(filename, Cursor::new(xhtml_content.as_bytes()))
-            .title(&chapter.title)
-            .reftype(ReferenceType::Text);
-        
-        builder.add_content(content)?;
-        
+            // 只有第一章标记为文本开始
+            if index == 0 {
+                epub_content = epub_content.reftype(ReferenceType::Text);
+            }
+            
+            builder.add_content(epub_content)?;
+        }
         Ok(())
     }
-}
 
-// 默认 CSS 样式
-const DEFAULT_CSS: &str = r#"
-    body { 
-        font-family: serif; 
-        margin: 5%;
-        line-height: 1.6;
-    }
-    h1, h2, h3 { 
-        text-align: center; 
-        page-break-after: avoid;
-    }
-    p {
-        text-align: justify;
-        text-indent: 2em;
-        margin-bottom: 0.5em;
-    }
-    img {
-        max-width: 100%;
-        height: auto;
-    }
-"#;
-
-/// 清理 HTML 内容，使其符合 EPUB XHTML 标准
-pub fn clean_html(html: &str) -> String {
-    // 移除 HTML 文档类型声明
-    let re = Regex::new(r"(?i)<!DOCTYPE html\s*\[[^\]]*\]?>").unwrap();
-    let cleaned = re.replace_all(html, "");
-    
-    // 确保自闭合标签正确格式化
-    let re = Regex::new(r"(?i)<(meta|link|img|br|hr|input)([^>]*)>").unwrap();
-    let cleaned = re.replace_all(&cleaned, |caps: &regex::Captures| {
-        format!("<{} {} />", &caps[1], &caps[2])
-    });
-    
-    cleaned.to_string()
-}
-
-/// 清理并包装 HTML 为完整的 XHTML 文档
-fn wrap_xhtml(title: &str, content: &str) -> String {
-    let cleaned_content = clean_html(content);
-    
-    format!(
-        r#"<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="zh-CN">
+    fn build_chapter_content(&self, chapter: &Chapter) -> Result<String> {
+        // 构建完整的 XHTML 文档
+        Ok(format!(
+            r#"<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
 <head>
     <title>{}</title>
-    <link rel="stylesheet" type="text/css" href="style.css" />
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" type="text/css" href="styles.css" />
 </head>
 <body>
     <h1>{}</h1>
     {}
 </body>
 </html>"#,
-        title, title, cleaned_content
-    )
+            escape_xml(&chapter.title),
+            escape_xml(&chapter.title),
+            clean_html(&chapter.context.join(""))?
+        ))
+    }
 }
 
-// 为 EpubBook 提供便捷的构建方法
-impl EpubBook {
-    /// 快速创建并生成 EPUB
-    pub fn create_epub<P, T, A>(
-        title: T,
-        author: A,
-        chapters: Vec<Chapter>,
-        output_path: P,
-    ) -> Result<()>
-    where
-        P: AsRef<Path>,
-        T: Into<String>,
-        A: Into<String>,
-    {
-        let mut book = Self::new(title, author);
-        book.add_chapters(chapters);
-        book.generate(output_path)
-    }
+// XML 转义函数
+fn escape_xml(s: &str) -> String {
+    s.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace("\"", "&quot;")
+        .replace("'", "&apos;")
+}
+
+pub fn clean_html(html: &str) -> Result<String> {
+    let mut cleaned = html.to_string();
+
+    // 1. 移除HTML文档类型声明
+    let doctype_re = Regex::new(r"(?i)<!DOCTYPE\s+html\b[^>]*>")?;
+    cleaned = doctype_re.replace_all(&cleaned, "").to_string();
+
+    // 2. 确保自闭合标签正确格式化
+    let self_closing_re = Regex::new(r"(?i)<(\s*)(meta|link|img|br|hr|input)(\s+[^>]*?)?(\s*)/?(\s*)>")?;
+    cleaned = self_closing_re.replace_all(&cleaned, |caps: &regex::Captures| {
+        let tag_name = caps[2].to_lowercase();
+        let attrs = caps.get(3).map_or("", |m| m.as_str());
+        format!("<{} {} />", tag_name, attrs.trim())
+    }).to_string();
+
+    // 3. 补充XHTML命名空间
+    let html_tag_re = Regex::new(r"(?i)<html\b([^>]*?)>")?;
+    cleaned = html_tag_re.replace_all(&cleaned, |caps: &regex::Captures| {
+        let existing_attrs = caps[1].to_string();
+        if existing_attrs.contains("xmlns=") {
+            format!("<html {}>", existing_attrs)
+        } else {
+            format!("<html xmlns=\"http://www.w3.org/1999/xhtml\" {}>", existing_attrs)
+        }
+    }).to_string();
+
+    // 4. 移除脚本标签
+    let script_re = Regex::new(r"(?is)<script\b[^>]*>.*?</script>")?;
+    cleaned = script_re.replace_all(&cleaned, "").to_string();
+
+    Ok(cleaned)
 }

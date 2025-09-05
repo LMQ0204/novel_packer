@@ -1,25 +1,28 @@
 use core::fmt;
-use std::path::PathBuf;
+use std::{path::PathBuf};
 
 #[derive(Default, Debug)]
 pub struct BiliNovel {
     pub url: String,
     pub book_name: String,
+    pub author: String,
     pub tags: Option<Tags>,
     pub nums: String,
     pub notice: String,
     pub description: String,
     pub volume: Vec<Novel>,
+    pub index: Vec<u8>
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 pub struct Novel {
-    url: String,
-    name: String,
-    cover: Option<Image>,
-    tags: Option<Tags>,
-    description: String,
-    chapters: Vec<Chapter>,
+    pub url: String,
+    pub name: String,
+    pub author: String,
+    pub cover: String,
+    pub tags: Option<Tags>,
+    pub description: String,
+    pub chapters: Vec<Chapter>,
 }
 
 #[derive(Default, Debug)]
@@ -28,15 +31,15 @@ pub struct Image {
     src: PathBuf
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 pub struct Chapter {
-    url: String,
-    title: String,
-    context: String, //???
-    image:Vec<Image>
+    pub url: String,
+    pub title: String,
+    pub context: Vec<String>, //???
+    pub image:Vec<String>
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 pub struct Tags {
     pub state: String,
     pub label: Vec<String>,
@@ -56,8 +59,12 @@ impl Image {
 }
 
 impl Chapter {
-    pub fn new() -> Self {
-        Chapter::default()
+    pub fn new(url:&str, title: &str) -> Self {
+        Self {
+            url:url.to_string(),
+            title: title.to_string(),
+            ..Chapter::default()
+        }
     }
 }
 
@@ -81,6 +88,7 @@ use colored::Colorize;
 impl fmt::Display for BiliNovel {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "{}\n", format!("{}",self.book_name).bright_yellow().bold())?;
+        writeln!(f, "{}\n",format!("{}",self.author).blue())?;
         if let Some(tags) = &self.tags {
             writeln!(f, "{}", tags)?;
         }
@@ -97,7 +105,7 @@ impl fmt::Display for BiliNovel {
             writeln!(f, "\n{}\n", self.description)?;
         }
         for (i, v) in self.volume.iter().enumerate() {
-            writeln!(f, "[{}]\t{}", i+1, v.name)?;
+            writeln!(f, "[{}]\t{}", i, v.name)?;
         }
         Ok(())
     }

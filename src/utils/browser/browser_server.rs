@@ -150,7 +150,7 @@ impl BrowserServer {
         // 先停止可能已存在的实例
         self.stop();
         
-        println!("正在启动浏览器服务器...");
+        // println!("正在启动浏览器服务器...");
         
         let mut command = Command::new(&self.config.executable_path);
         command
@@ -177,7 +177,7 @@ impl BrowserServer {
         self.wait_until_ready().await
             .context("浏览器服务器启动失败")?;
         
-        println!("浏览器服务器已启动在端口 {}", self.config.port);
+        // println!("浏览器服务器已启动在端口 {}", self.config.port);
         Ok(())
     }
 

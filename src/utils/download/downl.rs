@@ -1,5 +1,4 @@
 pub mod down {
-    use std::path::PathBuf;
 
     use crate::utils::config::DynamicConfig;
     use anyhow::{Context, Result, anyhow};
@@ -8,7 +7,6 @@ pub mod down {
     use tokio::io::{AsyncBufReadExt, AsyncReadExt, BufReader};
     use tokio::process::Command;
     use tracing::{error, info};
-    use url::Url;
 
     pub async fn download_from_url(url: &str, options: DynamicConfig) -> Result<Vec<Value>> {
         let exe_path = if let Some(path) = options.get_executable_path() {

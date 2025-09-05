@@ -20,6 +20,7 @@ pub struct AppConfig {
     pub send_to_rust: bool,
     pub server_port: u16,
     pub save_to_file: bool, // 新增：是否保存图片到文件
+    pub open_download: bool
 }
 
 impl Default for AppConfig {
@@ -31,6 +32,7 @@ impl Default for AppConfig {
             send_to_rust: false,
             server_port: 8080,
             save_to_file: false, // 默认不保存到文件
+            open_download: true
         }
     }
 }
@@ -61,8 +63,12 @@ impl AppConfig {
         self.server_port = port;
     }
 
-     /// 新增：设置是否保存图片到文件
+    /// 新增：设置是否保存图片到文件
     pub fn set_save_to_file(&mut self, save: bool) {
         self.save_to_file = save;
+    }
+    /// 新增：设置是否开启扩展 
+    pub fn set_open_download(&mut self, save: bool) {
+        self.open_download = save;
     }
 }

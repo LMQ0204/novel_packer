@@ -16,12 +16,13 @@
 
   // 配置参数（基于扩展消息协议）
   const CONFIG = {
-    WAIT_AFTER_EXECUTION: 1000,
+    WAIT_AFTER_EXECUTION: 1,
     SCROLL_DELAY: 1000,
     SCROLL_BEHAVIOR: "smooth",
-    MAX_WAIT_TIME: 60000, // 全局超时（60秒）
+    SCROLL_SPEED: 2500, // 默认1000像素/秒
+    MAX_WAIT_TIME: 120000, // 全局超时（120秒）
     DOWNLOAD_TIMEOUT: 30000, // 下载超时（30秒）
-    API_CHECK_TIMEOUT: 3000, // API检测超时（3秒）
+    API_CHECK_TIMEOUT: 2000, // API检测超时（2秒）
     AD_SELECTORS: [
       "ins.adsbygoogle",
       'div[class*="ad"]',
@@ -33,6 +34,7 @@
       '#mlfy_main_text [style*="display: none"]',
       '#mlfy_main_text [style*="display:none"]',
       ".hidden-content",
+      "#hidden-images",
       '[class*="hidden"]',
       '[style*="display: none"]',
     ],
@@ -149,65 +151,154 @@
     }
   }
 
-  // 滚动工具函数
-  function scrollToBottom() {
-    window.scrollTo({
-      top: document.body.scrollHeight,
-      behavior: CONFIG.SCROLL_BEHAVIOR,
+  // 检测滚动是否完成
+  function isScrolling() {
+    return new Promise((resolve) => {
+      let lastScrollTop = window.pageYOffset;
+      let scrollTimeout;
+
+      const checkScroll = () => {
+        const scrollTop = window.pageYOffset;
+
+        if (scrollTop !== lastScrollTop) {
+          lastScrollTop = scrollTop;
+          clearTimeout(scrollTimeout);
+          scrollTimeout = setTimeout(checkScroll, 100);
+        } else {
+          resolve();
+        }
+      };
+
+      scrollTimeout = setTimeout(checkScroll, 100);
     });
+  }
+
+  // 自定义滚动函数
+  function scrollToPosition(position) {
+    return new Promise((resolve) => {
+      const start = window.pageYOffset;
+      const distance = position - start;
+      const duration = (Math.abs(distance) / CONFIG.SCROLL_SPEED) * 1000; // 计算持续时间（毫秒）
+      let startTime = null;
+
+      function animation(currentTime) {
+        if (startTime === null) startTime = currentTime;
+        const timeElapsed = currentTime - startTime;
+        const scrollY = easeInOutQuad(timeElapsed, start, distance, duration);
+        window.scrollTo(0, scrollY);
+
+        if (timeElapsed < duration) {
+          requestAnimationFrame(animation);
+        } else {
+          // 等待滚动完全停止
+          setTimeout(() => {
+            isScrolling().then(resolve);
+          }, 100);
+        }
+      }
+
+      // 缓动函数
+      function easeInOutQuad(t, b, c, d) {
+        t /= d / 2;
+        if (t < 1) return (c / 2) * t * t + b;
+        t--;
+        return (-c / 2) * (t * (t - 2) - 1) + b;
+      }
+
+      requestAnimationFrame(animation);
+    });
+  }
+
+  // 滚动工具函数 - 保持与您的设计一致
+  function scrollToBottom() {
+    // addLog("开始滚动到底部");
+    if (CONFIG.SCROLL_BEHAVIOR === "auto") {
+      window.scrollTo({
+        top: document.body.scrollHeight,
+        behavior: "auto",
+      });
+      return Promise.resolve();
+    } else {
+      return scrollToPosition(document.body.scrollHeight);
+    }
   }
 
   function scrollToTop() {
-    window.scrollTo({
-      top: 0,
-      behavior: CONFIG.SCROLL_BEHAVIOR,
+    // addLog("开始滚动到顶部");
+    if (CONFIG.SCROLL_BEHAVIOR === "auto") {
+      window.scrollTo({
+        top: 0,
+        behavior: "auto",
+      });
+      return Promise.resolve();
+    } else {
+      return scrollToPosition(0);
+    }
+  }
+
+  // // 滚动工具函数
+  // function scrollToBottom() {
+  //   window.scrollTo({
+  //     top: document.body.scrollHeight,
+  //     behavior: CONFIG.SCROLL_BEHAVIOR,
+  //   });
+  // }
+
+  // function scrollToTop() {
+  //   window.scrollTo({
+  //     top: 0,
+  //     behavior: CONFIG.SCROLL_BEHAVIOR,
+  //   });
+  // }
+
+  // 显示隐藏内容 + 移除广告（返回Promise）
+  function showHiddenElements() {
+    return new Promise((resolve) => {
+      console.log("开始显示隐藏内容并移除广告...");
+
+      // 使用MutationObserver等待DOM操作完成
+      const observer = new MutationObserver(() => {
+        observer.disconnect();
+        resolve();
+      });
+
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+      });
+
+      // 移除广告
+      CONFIG.AD_SELECTORS.forEach((selector) => {
+        document.querySelectorAll(selector).forEach((el) => {
+          el.style.display = "none";
+          console.log(`已隐藏广告元素: ${selector}`);
+        });
+      });
+
+      // 显示隐藏内容
+      CONFIG.HIDDEN_SELECTORS.forEach((selector) => {
+        document.querySelectorAll(selector).forEach((el) => {
+          el.style.display = "block";
+          console.log(`已显示隐藏元素: ${selector}`);
+        });
+      });
+
+      // 如果没有找到任何元素，立即resolve
+      setTimeout(resolve, 0);
     });
   }
 
-  // 显示隐藏内容 + 移除广告
-  function showHiddenElements() {
-    console.log("开始显示隐藏内容并移除广告...");
-
-    // 移除广告
-    CONFIG.AD_SELECTORS.forEach((selector) => {
-      document.querySelectorAll(selector).forEach((el) => {
-        // el.remove();
-        // console.log(`已移除广告元素: ${selector}`);
-        el.style.display = "none"; // 改为隐藏广告（不从DOM中移除）
-        console.log(`已隐藏广告元素: ${selector}`);
-      });
-    });
-
-    // 显示隐藏内容
-    CONFIG.HIDDEN_SELECTORS.forEach((selector) => {
-      document.querySelectorAll(selector).forEach((el) => {
-        el.style.display = "block";
-        console.log(`已显示隐藏元素: ${selector}`);
-
-        // 可视化标记关键内容
-        if (
-          el.id === "TextContent" ||
-          el.classList.contains("hidden-content")
-        ) {
-          el.style.border = "2px dashed #4CAF50";
-          const indicator = document.createElement("div");
-          indicator.innerHTML = "用户脚本显示内容";
-          indicator.style.cssText = `
-            position: absolute; top: 5px; right: 5px; background: #4CAF50;
-            color: white; padding: 2px 5px; border-radius: 3px; font-size: 12px; z-index: 1000;
-          `;
-          el.style.position = "relative";
-          el.appendChild(indicator);
+  // 封装为返回 Promise 的函数
+  function addOriginalSrcToImagesAsync() {
+    return new Promise((resolve) => {
+      document.querySelectorAll("img").forEach((img) => {
+        if (img.src) {
+          img.setAttribute("data-original-src", img.src);
+          console.log(`已为图片添加属性: ${img.src}`);
         }
       });
-    });
-
-    // 为图片添加原始地址属性
-    document.querySelectorAll("img").forEach((img) => {
-      if (img.src) {
-        img.setAttribute("data-original-src", img.src);
-        console.log(`已为图片添加属性: ${img.src}`);
-      }
+      resolve(); // 同步操作完成后立即 resolve
     });
   }
 
@@ -314,12 +405,18 @@
 
       // 2. 滚动触发懒加载
       console.log("滚动到页面底部（触发懒加载）");
-      scrollToBottom();
-      await new Promise((resolve) => setTimeout(resolve, CONFIG.SCROLL_DELAY));
+      await scrollToBottom();
+      // await new Promise((resolve) => setTimeout(resolve, CONFIG.SCROLL_DELAY));
 
-      console.log("滚动回页面顶部");
-      scrollToTop();
-      await new Promise((resolve) => setTimeout(resolve, CONFIG.SCROLL_DELAY));
+      // console.log("滚动回页面顶部");
+      // await scrollToTop();
+      // await new Promise((resolve) => setTimeout(resolve, CONFIG.SCROLL_DELAY));
+
+      // 4. 最终等待
+      console.log(`等待${CONFIG.WAIT_AFTER_EXECUTION}ms确保资源就绪`);
+      await new Promise((resolve) =>
+        setTimeout(resolve, CONFIG.WAIT_AFTER_EXECUTION)
+      );
 
       // 3. 检测扩展状态并决定处理方式
       const { available, isDownloadEnabled } = await checkExtensionAndStatus();
@@ -332,11 +429,14 @@
         // useAlternativeImageProcessing();
       }
 
-      // 4. 最终等待
+      console.log("开始添加图片属性...");
+      await addOriginalSrcToImagesAsync(); // 等待执行完成
+
       console.log(`等待${CONFIG.WAIT_AFTER_EXECUTION}ms确保资源就绪`);
       await new Promise((resolve) =>
         setTimeout(resolve, CONFIG.WAIT_AFTER_EXECUTION)
       );
+
 
       // 通知SingleFile开始捕获
       console.log("=== 预处理完成，通知SingleFile捕获 ===");

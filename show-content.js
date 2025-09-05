@@ -318,7 +318,6 @@
       // 2. 执行向下滚动操作
       console.log("滚动到页面底部...");
       scrollToBottom();
-
       // 等待滚动完成
       await new Promise((resolve) => setTimeout(resolve, CONFIG.SCROLL_DELAY));
 

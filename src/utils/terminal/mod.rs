@@ -1,5 +1,5 @@
 use crossterm::{
-    cursor::{MoveTo, MoveToColumn, MoveUp},
+    cursor::{MoveToColumn, MoveUp},
     execute,
     terminal::{Clear, ClearType},
 };

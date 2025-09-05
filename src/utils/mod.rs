@@ -1,5 +1,5 @@
 pub mod config;
-// pub mod progress_bar;
+pub mod progressbar;
 pub mod check_single_file;
 pub mod download;
 pub mod terminal;

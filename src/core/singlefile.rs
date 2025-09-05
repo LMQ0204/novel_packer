@@ -2,7 +2,7 @@ use std::path::{PathBuf};
 use anyhow::{Result, anyhow};
 use tracing::warn;
 
-use crate::utils::{check_single_file, config::DynamicConfig};
+use crate::{ utils::{check_single_file, config::DynamicConfig}};
 use async_trait::async_trait; // 导入宏
 #[async_trait]
 pub trait Singlefile: Send + Sync {
@@ -17,7 +17,9 @@ pub trait Singlefile: Send + Sync {
     }
     fn init(&mut self) -> Result<()>;
     async fn display(&mut self) -> Result<()>;
-    // fn download();
+    async fn download(&mut self) -> Result<()>;
+    // async fn check_novel(&mut self) -> Result<()>;
+    fn get_novel(&self) -> Result<()>;
     // fn extract();
 }
 
