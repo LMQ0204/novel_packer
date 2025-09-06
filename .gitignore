@@ -1,9 +1,5 @@
 /target
-*.html
-# *.json
-# *.js
-*.log
-*.txt
-*.epub
-*.jpg
 /temp
+/output
+
+*.exe

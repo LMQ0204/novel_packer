@@ -11,6 +11,7 @@ use crate::utils::httpclient::types::RequestConfig;
 use crate::utils::httpserver::{AppConfig, get_all_images, init_controller, start_server};
 use crate::utils::terminal::clear_previous_line;
 use anyhow::Result;
+use crossterm::style::Stylize;
 use serde_json::json;
 use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
@@ -150,7 +151,7 @@ impl Singlefile for BiliNovel {
                         }
                     }
 
-                    println!("打包[{}]中", v.name);
+                    println!("打包[{}]中...", v.name.to_owned().dark_green());
                     let images = match get_all_images() {
                         Ok(v) => v,
                         Err(e) => {
@@ -162,7 +163,7 @@ impl Singlefile for BiliNovel {
 
                     let generator = EpubGenerator::new(&self.volume[i as usize], &images);
                     let file = match std::fs::File::create(format!(
-                        "{}.epub",
+                        "./output/{}.epub",
                         &self.volume[i as usize].name
                     )) {
                         Ok(v) => v,
