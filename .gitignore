@@ -1,5 +1,6 @@
 /target
 /temp
 /output
+.vscode
 
 *.exe
