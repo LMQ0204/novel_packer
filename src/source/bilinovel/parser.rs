@@ -12,6 +12,7 @@ use crate::utils::httpserver::{AppConfig, get_all_images, init_controller, start
 use crate::utils::terminal::clear_previous_line;
 use anyhow::Result;
 use crossterm::style::Stylize;
+use regex::Regex;
 use serde_json::json;
 use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
@@ -35,6 +36,29 @@ use tokio::sync::{Mutex, Semaphore};
 use tracing::{error, info};
 
 use async_trait::async_trait; // 导入宏
+
+///从链接获取书籍号
+pub fn get_bilinovel(url: &str) -> Box<BiliNovel> {
+   let re = match Regex::new("/novel/(\\d+)") {
+       Ok(v) => v,
+       Err(e) => {
+        error!("{}",e);
+        eprintln!("解析正则表达式错误，直接返回链接 {}",e);
+        return Box::new(BiliNovel::new(url.to_string()));
+       }
+   };
+
+   let id = re.captures(url)           
+    .and_then(|ca| ca.get(1))          
+    .map(|v| v.as_str())                
+    .unwrap_or("");  
+   if id.is_empty() {
+       Box::new(BiliNovel::new(url.to_string()))
+   }else {
+        Box::new(BiliNovel::new(format!("https://www.linovelib.com/novel/{}.html",id)))
+   }
+   
+}
 
 #[async_trait]
 impl Singlefile for BiliNovel {

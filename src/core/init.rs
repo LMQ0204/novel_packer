@@ -1,4 +1,4 @@
-use crate::{core::singlefile::Singlefile, source::bilinovel::types::BiliNovel};
+use crate::{core::singlefile::Singlefile, source::bilinovel::parser::get_bilinovel};
 use once_cell::sync::Lazy;
 use std::{collections::HashMap, sync::Mutex};
 
@@ -16,8 +16,8 @@ pub fn register_url_handler(domain: &str, handler: fn(String) -> Box<dyn Singlef
 
 // 初始化注册表（可以在程序启动时调用）
 pub fn init_url_handlers() {
-    register_url_handler("www.linovelib.com", |url| Box::new(BiliNovel::new(url)));
-    register_url_handler("linovelib.com", |url| Box::new(BiliNovel::new(url)));
+    register_url_handler("www.linovelib.com", |url| get_bilinovel(&url));
+    register_url_handler("linovelib.com", |url| get_bilinovel(&url));
     // 注册更多处理器...
 }
 

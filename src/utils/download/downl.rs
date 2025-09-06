@@ -13,8 +13,8 @@ pub mod down {
             info!("从配置中读取到路径:{}", &path);
             path
         } else {
-            info!("使用默认路径:{}", "single-file");
-            String::from("single-file")
+            info!("使用默认路径:{}", "./extra/single-file");
+            String::from("./extra/single-file")
         };
 
         let args = options.to_args().map_err(|e| anyhow!("{}", e))?;
