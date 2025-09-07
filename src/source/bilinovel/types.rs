@@ -1,6 +1,6 @@
 
 
-#[derive(Default, Debug)]
+#[derive(Default)]
 pub struct BiliNovel {
     pub url: String,
     pub book_name: String,
@@ -11,7 +11,14 @@ pub struct BiliNovel {
     pub description: String,
     pub volume: Vec<Novel>,
     pub index: Vec<u8>,
-    pub config: DynamicConfig
+    pub config: NovelConfig
+}
+
+#[derive(Default, Clone, Serialize, Deserialize)]
+pub struct  NovelConfig {
+    pub max_concurrent: usize,
+    pub check_rounds: usize,
+    pub css: String,
 }
 
 #[derive(Default, Debug, Clone)]
@@ -73,9 +80,23 @@ impl BiliNovel {
         res
     }
 }
+
+use anyhow::{Result};
+impl NovelConfig {
+    /// 从文件读取配置
+    pub fn load<P: AsRef<Path>>(path: P) -> Result<Self> {
+        // 读取文件内容
+        let content = std::fs::read_to_string(path)?;
+        // 反序列化
+        let config = serde_json::from_str(&content)?;
+        Ok(config)
+    }
+}
+
 use colored::Colorize;
+use serde::{Deserialize, Serialize};
 use core::fmt;
-use crate::utils::config::DynamicConfig;
+use std::path::Path;
 
 impl fmt::Display for BiliNovel {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

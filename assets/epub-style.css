@@ -1,0 +1,249 @@
+/* 基础设置 - 确保在不同设备上的一致性 */
+@charset "UTF-8";
+
+/* 页面基础样式 */
+body {
+    margin: 0;
+    padding: 0;
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: 100%;
+    line-height: 1.6;
+    color: #333;
+    background-color: #f8f6f0;
+    -webkit-text-size-adjust: 100%;
+    -moz-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
+/* 容器样式 - 限制最大宽度以提高可读性 */
+.container {
+    max-width: 40em;
+    margin: 0 auto;
+    padding: 2em 5%;
+}
+
+/* 标题样式 - 建立清晰的层次结构 */
+h1, h2, h3, h4, h5, h6 {
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: bold;
+    margin-top: 1.5em;
+    margin-bottom: 0.8em;
+    line-height: 1.3;
+    page-break-after: avoid; /* 避免标题后分页 */
+}
+
+h1 {
+    font-size: 1.8em;
+    color: #222;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 0.3em;
+}
+
+h2 {
+    font-size: 1.5em;
+    color: #333;
+}
+
+h3 {
+    font-size: 1.3em;
+    color: #444;
+}
+
+h4, h5, h6 {
+    font-size: 1.1em;
+    color: #555;
+}
+
+/* 段落样式 */
+p {
+    margin: 0 0 1em 0;
+    text-align: justify; /* 两端对齐提高可读性 */
+    orphans: 2; /* 避免段落首行单独出现在页尾 */
+    widows: 2; /* 避免段落末行单独出现在页首 */
+}
+
+/* 首行缩进 - 传统书籍排版风格 */
+p:not(.no-indent) {
+    text-indent: 2em;
+}
+
+/* 引用样式 */
+blockquote {
+    margin: 1em 0;
+    padding: 0 1.5em;
+    border-left: 3px solid #ccc;
+    color: #666;
+    font-style: italic;
+}
+
+/* 列表样式 */
+ul, ol {
+    margin: 1em 0;
+    padding-left: 2.5em;
+}
+
+li {
+    margin-bottom: 0.5em;
+}
+
+li p {
+    text-indent: 0; /* 列表中的段落取消首行缩进 */
+}
+
+/* 链接样式 */
+a {
+    color: #1a5fb4;
+    text-decoration: none;
+}
+
+a:hover, a:focus {
+    color: #0d3a70;
+    text-decoration: underline;
+}
+
+/* 强调文本 */
+strong {
+    font-weight: bold;
+    color: #222;
+}
+
+em {
+    font-style: italic;
+}
+
+/* 代码和预格式化文本 */
+code, pre {
+    font-family: "Courier New", Courier, monospace;
+    font-size: 0.9em;
+    background-color: #f5f5f5;
+    padding: 0.1em 0.3em;
+    border-radius: 3px;
+}
+
+pre {
+    padding: 1em;
+    overflow-x: auto;
+    margin: 1em 0;
+    border: 1px solid #eee;
+}
+
+/* 图片样式 - 响应式处理 */
+img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 1.5em auto;
+    page-break-inside: avoid; /* 避免图片被分页截断 */
+}
+
+/* 图片说明文字 */
+figcaption {
+    text-align: center;
+    font-size: 0.9em;
+    color: #666;
+    margin-top: -1em;
+    margin-bottom: 1.5em;
+}
+
+/* 表格样式 */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5em 0;
+    page-break-inside: avoid;
+}
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 0.6em 0.8em;
+    text-align: left;
+}
+
+th {
+    background-color: #f0f0f0;
+    font-weight: bold;
+}
+
+tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+/* 分页控制 - EPUB特有的分页提示 */
+.page-break {
+    page-break-after: always;
+}
+
+/* 诗歌样式 - 特殊排版 */
+.poem {
+    margin: 1.5em 0;
+    padding-left: 2em;
+    font-style: italic;
+}
+
+.poem line {
+    display: block;
+    margin-bottom: 0.5em;
+}
+
+.poem stanza {
+    display: block;
+    margin-bottom: 1em;
+}
+
+/* 响应式调整 - 适应不同屏幕尺寸 */
+@media (max-width: 30em) {
+    .container {
+        padding: 1.5em 3%;
+    }
+    
+    h1 {
+        font-size: 1.6em;
+    }
+    
+    h2 {
+        font-size: 1.4em;
+    }
+}
+
+/* 暗色模式支持 */
+@media (prefers-color-scheme: dark) {
+    body {
+        background-color: #1a1a1a;
+        color: #e0e0e0;
+    }
+    
+    h1, h2, h3, h4, h5, h6 {
+        color: #f0f0f0;
+        border-color: #444;
+    }
+    
+    blockquote {
+        color: #bbb;
+        border-color: #555;
+    }
+    
+    a {
+        color: #6ba6ff;
+    }
+    
+    a:hover, a:focus {
+        color: #9bc1ff;
+    }
+    
+    strong {
+        color: #f5f5f5;
+    }
+    
+    code, pre {
+        background-color: #333;
+        border-color: #444;
+    }
+    
+    th {
+        background-color: #333;
+    }
+    
+    tr:nth-child(even) {
+        background-color: #2a2a2a;
+    }
+}

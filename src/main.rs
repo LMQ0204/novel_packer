@@ -6,7 +6,7 @@ mod utils;
 use std::io::stdin;
 use anyhow::Result;
 
-use crate::{core::{get_struct::get_from_url, init::{init_logger, init_url_parser}}, utils::httpserver::get_all_images};
+use crate::core::{get_struct::get_from_url, init::{init_logger, init_url_parser}};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -32,19 +32,7 @@ async fn main() -> Result<()> {
         eprintln!("{}", e);
         return wait_for_exit();
     }
-    
-
-    let images = match get_all_images() {
-        Ok(imgs) => imgs,
-        Err(e) => {
-            eprintln!("{}", e);
-            return wait_for_exit();
-        }
-    };
-    for (url, image) in images {
-        println!("url:{}\tfilename:{}", url, image.filename);
-    }
-    
+      
     // 所有步骤成功，正常等待退出
     wait_for_exit()
 }

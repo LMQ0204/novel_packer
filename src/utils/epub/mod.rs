@@ -7,6 +7,7 @@ use std::{
 use anyhow::Result;
 use epub_builder::{EpubBuilder, EpubContent, ReferenceType, ZipLibrary};
 use regex::Regex;
+use tracing::error;
 use std::io::{Seek, Write};
 
 use crate::{
@@ -17,17 +18,25 @@ use crate::{
 pub struct EpubGenerator<'a> {
     novel: &'a Novel,
     images: &'a HashMap<String, ImageData>,
-    css: Option<String>, 
+    css: Option<String>,
 }
 
 impl<'a> EpubGenerator<'a> {
     pub fn new(novel: &'a Novel, images: &'a HashMap<String, ImageData>) -> Self {
-        EpubGenerator { novel, images, css: None,}
-        
+        EpubGenerator {
+            novel,
+            images,
+            css: None,
+        }
     }
 
     // 添加设置自定义CSS的方法
-    pub fn with_css(mut self, css: String) -> Self {
+    pub fn with_css(mut self, path: &str) -> Self {
+        let css = std::fs::read_to_string(path).unwrap_or_else(|e| {
+            eprintln!("设置css出错：{}", e);
+            error!("设置css出错：{}", e);
+            default_css::DEFAULT_CSS.to_string()
+        });
         self.css = Some(css);
         self
     }
@@ -93,7 +102,7 @@ impl<'a> EpubGenerator<'a> {
             Some(custom_css) => custom_css.as_str(),
             None => default_css::DEFAULT_CSS,
         };
-        
+
         builder.add_resource("styles.css", Cursor::new(css_content), "text/css")?;
         Ok(())
     }

@@ -11,5 +11,6 @@
   "browser-wait-delay": 1000,
   "browser-load-max-time": 240000,
   "browser-capture-max-time": 240000,
-  "load-deferred-images-keep-zoom-level": true
+  "load-deferred-images-keep-zoom-level": true,
+  "load-deferred-images-before-frames": true
 }

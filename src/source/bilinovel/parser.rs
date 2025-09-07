@@ -33,31 +33,36 @@ use scraper::{Html, Selector};
 use serde_json::Value;
 use tempfile::NamedTempFile;
 use tokio::sync::{Mutex, Semaphore};
-use tracing::{error, info};
+use tracing::{error, info, warn};
 
 use async_trait::async_trait; // 导入宏
 
 ///从链接获取书籍号
 pub fn get_bilinovel(url: &str) -> Box<BiliNovel> {
-   let re = match Regex::new("/novel/(\\d+)") {
-       Ok(v) => v,
-       Err(e) => {
-        error!("{}",e);
-        eprintln!("解析正则表达式错误，直接返回链接 {}",e);
-        return Box::new(BiliNovel::new(url.to_string()));
-       }
-   };
+    let re = match Regex::new("/novel/(\\d+)") {
+        Ok(v) => v,
+        Err(e) => {
+            error!("{}", e);
+            eprintln!("解析正则表达式错误，直接返回链接 {}", e);
+            return Box::new(BiliNovel::new(url.to_string()));
+        }
+    };
 
-   let id = re.captures(url)           
-    .and_then(|ca| ca.get(1))          
-    .map(|v| v.as_str())                
-    .unwrap_or("");  
-   if id.is_empty() {
-       Box::new(BiliNovel::new(url.to_string()))
-   }else {
-        Box::new(BiliNovel::new(format!("https://www.linovelib.com/novel/{}.html",id)))
-   }
-   
+    let id = re
+        .captures(url)
+        .and_then(|ca| ca.get(1))
+        .map(|v| v.as_str())
+        .unwrap_or("");
+    if id.is_empty() {
+        error!("没有提取到书籍id,直接返回链接：{}", url);
+        Box::new(BiliNovel::new(url.to_string()))
+    } else {
+        info!("正确提取到书籍id:{}", id);
+        Box::new(BiliNovel::new(format!(
+            "https://www.linovelib.com/novel/{}.html",
+            id
+        )))
+    }
 }
 
 #[async_trait]
@@ -102,10 +107,11 @@ impl Singlefile for BiliNovel {
         self.index = index.clone();
 
         //服务器的配置及启动
-        let mut appconfig = AppConfig::default();
-        appconfig.set_send_to_rust(true);
-        appconfig.set_regex_pattern(r"^https://img3\.readpai\.com/.*");
-        appconfig.set_open_download(true);
+        let appconfig = AppConfig::from_file("./config/http.json").unwrap_or_else(|e| {
+            error!("服务器配置读取失败，将使用默认值：{}", e);
+            eprintln!("服务器配置读取失败，将使用默认值：{}", e);
+            AppConfig::default()
+        });
 
         init_controller(appconfig)?;
         start_server()?;
@@ -131,12 +137,7 @@ impl Singlefile for BiliNovel {
                     match v
                         .parser_by_singlefile(
                             config.clone(),
-                            self.config
-                                .get("max-concurrent")
-                                .and_then(|val| val.as_number()) // 非数字→None
-                                .and_then(|num| num.as_u64()) // 负数/小数→None
-                                .and_then(|u64_val| u64_val.try_into().ok()) // 超usize范围→None
-                                .unwrap_or(5),
+                            self.config.max_concurrent,
                             &browser_server_url,
                         )
                         .await
@@ -149,13 +150,7 @@ impl Singlefile for BiliNovel {
                         }
                     }
 
-                    let max_echo = self
-                        .config
-                        .get("check-rounds")
-                        .and_then(|val| val.as_number()) // 非数字→None
-                        .and_then(|num| num.as_u64()) // 负数/小数→None
-                        .and_then(|u64_val| u64_val.try_into().ok()) // 超usize范围→None
-                        .unwrap_or(100);
+                    let max_echo = self.config.check_rounds;
 
                     for i in 1..=max_echo {
                         println!(
@@ -197,7 +192,10 @@ impl Singlefile for BiliNovel {
                             continue;
                         }
                     };
-                    generator.generate_epub(file).unwrap_or_else(|e| eprintln!("打包章节出错：{}",e));
+                    generator
+                        .with_css(&self.config.css)
+                        .generate_epub(file)
+                        .unwrap_or_else(|e| eprintln!("打包章节出错：{}", e));
                 }
             }
         }
@@ -264,14 +262,20 @@ impl BiliNovel {
 
     ///通过rust服务器解析页面
     pub async fn parser_book_http_async(&mut self, config: RequestConfig) -> Result<()> {
-        let client =
-            AsyncHttpClient::new(config).map_err(|e| anyhow::anyhow!("创建客户端失败: {}", e))?;
-        let book_response = client
-            .get(&self.url)
-            .await
-            .map_err(|e| anyhow!("发送请求失败：{}", e))?;
+        let client = AsyncHttpClient::new(config).map_err(|e| {
+            error!("创建客户端失败: {}", e);
+            anyhow::anyhow!("创建客户端失败: {}", e)
+        })?;
+        let book_response = client.get(&self.url).await.map_err(|e| {
+            error!("发送请求失败：{}", e);
+            anyhow!("发送请求失败：{}", e)
+        })?;
 
         if !book_response.is_success() {
+            error!(
+                "获取失败: url:{},\tstatus:{}",
+                book_response.url, book_response.status
+            );
             return Err(anyhow!(
                 "获取失败: url:{},\tstatus:{}",
                 book_response.url,
@@ -302,7 +306,8 @@ impl BiliNovel {
     }
 
     pub fn load_config(&mut self, config_path: &str) -> Result<()> {
-        self.config.load(PathBuf::from(config_path))?;
+        info!("开始从{}加载bilinovel的配置", config_path);
+        self.config = super::types::NovelConfig::load(PathBuf::from(config_path))?;
         Ok(())
     }
 }
@@ -355,6 +360,7 @@ impl Novel {
 
         // 预先创建临时文件
         {
+            info!("创建临时文件用来并发下载章节");
             let mut files_lock = temp_files.lock().await;
             for _ in 0..max_concurrent {
                 let temp_file = NamedTempFile::new_in("./temp")?;
@@ -366,6 +372,7 @@ impl Novel {
 
         // 使用索引而不是直接使用引用
         for (i, chapter) in self.chapters.iter().enumerate() {
+            info!("下载第{}个章节中", i);
             let semaphore = Arc::clone(&semaphore);
 
             let temp_files = Arc::clone(&temp_files);
@@ -377,7 +384,6 @@ impl Novel {
 
             chapter_futures.push(async move {
                 let permit = semaphore.acquire().await?;
-
                 // 从池中获取临时文件
                 let mut files_lock = temp_files.lock().await;
                 let temp_file = files_lock.pop_front().unwrap();
@@ -398,10 +404,13 @@ impl Novel {
 
                 // 更新进度
                 match &result {
-                    Ok(_) => progress.increment(),
-                    Err(_) => {
+                    Ok(_) => {
+                        info!("章节下载成功：{}", chapter_title);
+                        progress.increment();
+                    }
+                    Err(e) => {
                         progress.record_error();
-                        // eprintln!("章节下载失败: {} - {}", chapter_title, e);
+                        error!("章节下载失败: {} - {}", chapter_title, e);
                     }
                 }
 
@@ -420,7 +429,7 @@ impl Novel {
             .buffer_unordered(max_concurrent)
             .collect()
             .await;
-
+        info!("所有任务下载完成");
         // 完成进度监控
         progress.finish();
 
@@ -434,6 +443,7 @@ impl Novel {
                     }
                 }
                 Err(e) => {
+                    error!("任务执行失败: {}", e);
                     eprintln!("任务执行失败: {}", e);
                 }
             }
@@ -443,14 +453,20 @@ impl Novel {
 
     ///检查每个章节的图片是否下载完成，需给定浏览器地址
     pub async fn check_images(&mut self, browser_server_url: &str) -> Result<()> {
+        info!("开始检查是否有缺少图片");
+
         let mut images: HashMap<String, Vec<String>> = HashMap::new();
-        if let Some(Some(_)) = get_image_by_url(&self.cover).ok() {
+        let mut res = Ok(());
+        if let Ok(Some(_)) = get_image_by_url(&self.cover) {
         } else {
+            warn!("缺少封面图片。小说url：{}，图片url：{}",self.url, self.cover);
+            warn!("开始重写下载小说url：{}，图片url：{}",self.url, self.cover);
+            res = Err(anyhow!("缺少封面图片"));
             //解析小说页面的配置
             let mut config = DynamicConfig::new();
             config.load(PathBuf::from("./config/novel.json"))?;
             config.with_set("browser-server", json!(browser_server_url));
-            let _ = download_from_url(&self.url, config).await;
+            download_from_url(&self.url, config).await?;
         }
 
         for chapter in &self.chapters {
@@ -458,6 +474,7 @@ impl Novel {
                 if let Some(Some(_)) = get_image_by_url(i).ok() {
                     continue;
                 } else {
+                    warn!("缺少图片。章节url：{}，图片url：{}",chapter.url, i);
                     images
                         .entry(chapter.url.to_owned())
                         .or_insert(Vec::new())
@@ -468,6 +485,9 @@ impl Novel {
         // 创建临时文件（自动唯一命名和清理）
         let temp_file = NamedTempFile::new_in("./temp")?;
         let crawl_path = temp_file.path().to_str().unwrap_or("./temp/images.json");
+        if !images.is_empty() {
+            res = Err(anyhow!("存在章节缺少图片"));
+        }
         for (url, _) in images {
             download_chapter_singlefile(
                 &url,
@@ -478,7 +498,7 @@ impl Novel {
             .await?;
         }
 
-        Ok(())
+        res
     }
 }
 

@@ -1,4 +1,6 @@
 use reqwest::Client;
+use tracing::{error, info, warn};
+use std::env;
 use std::process::{Child, Command, Stdio};
 use std::time::Duration;
 use tokio::time;
@@ -20,6 +22,8 @@ pub struct BrowserConfig {
     pub user_data_dir: String,
     /// 是否使用无头模式
     pub headless: bool,
+    /// 扩展地址
+    pub extensions: String,
     /// 额外的浏览器命令行参数
     #[serde(default)]
     pub additional_args: Vec<String>,
@@ -48,11 +52,11 @@ impl Default for BrowserConfig {
             user_data_dir: r"E:\BrowserProfiles".to_string(),
             headless: true,
             additional_args: vec![
-                "--no-sandbox".to_string(),
                 "--disable-dev-shm-usage".to_string(),
             ],
             startup_timeout: 30,
             health_check_interval: 5,
+            extensions: String::new(),
         }
     }
 }
@@ -67,9 +71,17 @@ impl BrowserConfig {
         file.read_to_string(&mut contents)
             .with_context(|| format!("读取配置文件失败: {:?}", path))?;
 
-        let config: Self = serde_json::from_str(&contents)
+        let mut config: Self = serde_json::from_str(&contents)
             .with_context(|| format!("解析JSON配置失败: {:?}", path))?;
 
+
+        let binding = env::current_dir()?;
+        let dir = binding.to_str().ok_or("获取当前路径失败").map_err(|e| {
+            error!("{}",e);
+            anyhow!("{}",e)
+        })?;
+        config.user_data_dir = format!("{}\\{}",dir,config.user_data_dir);
+        config.extensions = format!("{}\\{}",dir,config.extensions);
         Ok(config)
     }
 
@@ -94,6 +106,7 @@ impl BrowserConfig {
         // 添加固定参数
         args.push(format!("--remote-debugging-port={}", self.port));
         args.push(format!("--user-data-dir={}", self.user_data_dir));
+        args.push(format!("--load-extension={}",self.extensions));
 
         if self.headless {
             args.push("--headless".to_string());
@@ -139,7 +152,7 @@ impl BrowserServer {
         // 先停止可能已存在的实例
         self.stop();
 
-        // println!("正在启动浏览器服务器...");
+        info!("正在启动浏览器服务器...");
 
         let mut command = Command::new(&self.config.executable_path);
         command.args(self.config.to_args());
@@ -155,7 +168,8 @@ impl BrowserServer {
             .await
             .context("浏览器服务器启动失败")?;
 
-        // println!("浏览器服务器已启动在端口 {}", self.config.port);
+        info!("浏览器服务器已启动在端口 {}", self.config.port);
+
         Ok(())
     }
 
@@ -172,7 +186,7 @@ impl BrowserServer {
                 _ => time::sleep(Duration::from_millis(500)).await,
             }
         }
-
+        error!("浏览器服务器启动超时");
         Err(anyhow!("浏览器服务器启动超时"))
     }
 
@@ -195,8 +209,8 @@ impl BrowserServer {
 
             // 等待进程结束
             match process.wait() {
-                Ok(_status) => {
-                    // println!("浏览器进程已终止，退出状态: {}", status)
+                Ok(status) => {
+                    warn!("浏览器进程已终止，退出状态: {}", status);
                 }
                 Err(e) => eprintln!("等待浏览器进程终止时出错: {}", e),
             }

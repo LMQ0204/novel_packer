@@ -313,6 +313,7 @@ impl HttpServer {
             mime_type,
             file_path
         };
+        info!("已保存 url:{}\tfilename:{}",url, image_data.filename);
         // println!("已保存 url:{}\tfilename:{}",url, image_data.filename);
         // 添加到图片HashMap，使用URL作为键
         self.images.write().unwrap().insert(url.clone(), image_data); // 使用write()而不是lock()

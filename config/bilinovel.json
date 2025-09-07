@@ -1,4 +1,5 @@
 {
-    "max-concurrent":6,
-    "check-rounds":100
+  "max_concurrent": 15,
+  "check_rounds": 100,
+  "css": "./assets/epub-style.css"
 }

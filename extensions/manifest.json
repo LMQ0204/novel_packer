@@ -1,0 +1,41 @@
+{
+  "manifest_version": 3,
+  "version": "0.1.0",
+  "name": "Lite Image Downloader",
+  "description": "Download all cached images on the current page to the default download directory",
+  "permissions": ["storage", "debugger", "downloads", "scripting", "activeTab"],
+  "host_permissions": ["<all_urls>"],
+  "homepage_url": "https://webextension.org/listing/lite-image-downloader.html",
+  "background": {
+    "service_worker": "worker.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_start",
+      "all_frames": true
+    }
+  ],
+  "icons": {
+    "16": "data/icons/16.png",
+    "32": "data/icons/32.png",
+    "48": "data/icons/48.png",
+    "64": "data/icons/64.png",
+    "128": "data/icons/128.png",
+    "256": "data/icons/256.png",
+    "512": "data/icons/512.png"
+  },
+  "action": {
+    "default_title": "Click to start collecting images on the current tab.\nClick again to abort."
+  },
+  "commands": {
+    "_execute_action": {}
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["inject.js"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

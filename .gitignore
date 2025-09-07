@@ -2,5 +2,6 @@
 /temp
 /output
 .vscode
+/user data
 
 *.exe

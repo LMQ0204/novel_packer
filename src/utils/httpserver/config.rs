@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use anyhow::{Result};
 
 /// 图片数据
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -14,7 +15,7 @@ pub struct ImageData {
 /// 应用程序配置
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppConfig {
-    pub regex_pattern: String,
+    pub regex_pattern: Vec<String>,
     pub output_path: PathBuf,
     pub wait_time: u32,
     pub send_to_rust: bool,
@@ -26,7 +27,7 @@ pub struct AppConfig {
 impl Default for AppConfig {
     fn default() -> Self {
         Self {
-            regex_pattern: String::new(),
+            regex_pattern: Vec::new(),
             output_path: PathBuf::from("downloads"),
             wait_time: 1000,
             send_to_rust: true,
@@ -38,9 +39,18 @@ impl Default for AppConfig {
 }
 
 impl AppConfig {
+    /// 从文件读取配置
+    pub fn from_file<P: AsRef<Path>>(path: P) -> Result<Self> {
+        // 读取文件内容
+        let content = std::fs::read_to_string(path)?;
+        // 反序列化为AppConfig
+        let config = serde_json::from_str(&content)?;
+        Ok(config)
+    }
+    
     /// 设置正则表达式模式
-    pub fn set_regex_pattern(&mut self, pattern: &str) {
-        self.regex_pattern = pattern.to_string();
+    pub fn set_regex_pattern(&mut self, pattern: Vec<&str>) {
+        self.regex_pattern = pattern.iter().map(|v| v.to_string()).collect::<Vec<String>>();
     }
     
     /// 设置输出路径

@@ -142,7 +142,6 @@ pub fn extract_description(html: &str, selector: &str) -> Result<(String, String
             .trim()
             .to_string();
 
-        // println!("nums:{nums}");
         nums.push_str(&nums_txt);
         description.push_str(&des);
         notice.push_str(&notice_txt);
