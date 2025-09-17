@@ -12,7 +12,7 @@ if %ERRORLEVEL% neq 0 (
 )
 
 echo 构建成功，正在复制可执行文件...
-copy "target\release\singlefile-rs.exe" ".\singlefile-rs.exe" /Y
+copy "target\release\novel-packer.exe" ".\novel-packer.exe" /Y
 
 if %ERRORLEVEL% neq 0 (
     echo 错误：复制可执行文件失败！

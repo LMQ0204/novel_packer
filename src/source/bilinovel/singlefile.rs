@@ -153,7 +153,7 @@ impl Singlefile for BiliNovel {
 
                     println!("\n");
                     if !already {
-                        println!("开始下载[按q中止下载]：{}", v.name.to_owned().dark_yellow());
+                        println!("开始下载[按q中止下载]：{}\n", v.name.to_owned().dark_yellow());
                         match v
                             .parser_by_singlefile(
                                 config.clone(),

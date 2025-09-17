@@ -2,7 +2,7 @@
   "executable_path": "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
   "port": 9223,
   "user_data_dir": "user data",
-  "extensions": "extensions",
+  "extensions": "extensions/lite images downloader",
   "headless": false,
   "additional_args": [
     "--disable-dev-shm-usage",

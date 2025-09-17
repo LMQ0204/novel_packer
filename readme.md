@@ -1,18 +1,4 @@
-<h1 align="center">轻小说打包器</h1>
-
-<p align="center">
-    <img alt="GitHub" src="https://img.shields.io/github/license/Montaro2017/bili_novel_packer">
-    <img alt="Static Badge" src="https://img.shields.io/badge/language-Dart-britness">
-    <a href='https://gitee.com/Montaro2017/bili_novel_packer/'><img src='https://gitee.com/Montaro2017/bili_novel_packer/badge/star.svg?theme=dark' alt='star'></img></a>
-    <a target="_blank" href='https://github.com/Montaro2017/bili_novel_packer'>
-		<img src="https://img.shields.io/github/stars/Montaro2017/bili_novel_packer?logo=GitHub" alt="github star"/>
-	</a>
-</p>
-
-<p align="center">
-    <a href="https://gitee.com/Montaro2017/bili_novel_packer">Gitee</a> / <a href="https://github.com/Montaro2017/bili_novel_packer">GitHub</a>
-</p>
-
+<h1 align="center">小说打包器</h1>
 <hr/>
 
 ## 介绍
@@ -22,7 +8,7 @@
 轻小说打包器，可以将支持的轻小说网站中的小说打包成EPUB格式，包含插图，并自动生成目录页。
 这个工具本质上是控制浏览器自动化进行操作，所以可能内存占用会比较高。
 
-### 目前支持的轻小说网站
+### 目前支持的小说网站
  - [哔哩轻小说](https://www.linovelib.com)
 
 
@@ -38,7 +24,11 @@ git clone
 
 ![01](./images/novel.png)
 
-还支持
+还支持中断下载或者检查过程并保存状态，然后下一次可以从文件恢复保存的状态。
+
+![02](./images/恢复下载.png)
+
+支持自定义`epub`的`css`样式。我推荐将`css`文件放在`./assets`里面，并在`./config/bilinovel.json`的`"css"`中指明它的路径。
 
 ### 基础配置
 `config`文件夹下存储着运行的相关配置。我不建议你去随意更改，除非你真的知道这些配置的作用。但是有几个选项可以根据个人意愿稍作修改。
@@ -53,11 +43,25 @@ git clone
 
 除了上述配置外，还有比较复杂的配置。
 
-`config/novel.json`、`config/chaoter.json`、`config/images.json`分别储存着下载小说页面、章节页面以及重新下载缺少图片或缺页的页面时，所使用的`single-file`命令行工具的配置，最好不要随意改动，详见AAAAA。
+`config/novel.json`、`config/chaoter.json`、`config/images.json`分别储存着下载小说页面、章节页面以及重新下载缺少图片或缺页的页面时，所使用的`single-file`命令行工具的配置，最好不要随意改动，详见(https://github.com/gildas-lormeau/single-file-cli)。
 
 `config/browser.json`存储的是打开浏览器实例时的命令行选项。
 
 `config/http.json`存储的是rust服务器的相关配置，主要作用是接受浏览器扩展上传的图片数据。其中`regex_pattern`用来筛选图片的url，匹配的图片会被保留。`open_download`表示使用开启扩展的图片下载功能。`server_port`表示服务器开启的端口号。`send_to_rust`表示是否将图片数据上传到本地服务器。`wait_time`表示下载间隔。`save_to_file`表示是否将图片保存到本地。`output_path`表示图片的保存路径，这个选项是在`save_to_file`为`true`时有用。
+
+### 其他
+
+`extensions`下面保存的是用于保存图片的浏览器插件(根据[lite-image-downloader](https://github.com/belaviyo/lite-image-downloader)修改)。
+
+`extra`下面是[single-file-cil](https://github.com/gildas-lormeau/single-file-cli)的二进制文件。
+
+`output`中是打包好的`epub`
+
+`scripts`下面是用户脚本。
+
+`temp`下面是下载进度文件、日志、临时文件等。其中`./temp/download`下面是下载的文本文件，`./temp/images`下面是压缩成二进制格式的图片。如果你担心下载进度丢失的话，以上两个文件夹需要谨慎清理。而`./temp/logs`下存放的是日志文件,`./temp/temp`下是临时文件，每次下载开始或结束都可以清理。
+
+`user data`是浏览器配置文件。如果你想要放在其他位置，相应地`./config/browser.json`和`./config/browser_check.json`中也需要更改。
 
 ## 常见问题
 
@@ -94,7 +98,3 @@ cargo build --release
 [single-file-cil](https://github.com/gildas-lormeau/single-file-cli)：大多数下载是在这个工具的基础上进行的。
 
 [lite-image-downloader](https://github.com/belaviyo/lite-image-downloader)：下载图片的功能是基于这个进行修改，然后将图片传输到本地服务器。
-
-## Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=Montaro2017/bili_novel_packer&type=Date)](https://www.star-history.com/#Montaro2017/bili_novel_packer&Date)

@@ -1337,6 +1337,41 @@ dependencies = [
 ]
 
 [[package]]
+name = "novel-packer"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "base64",
+ "bincode",
+ "chrono",
+ "colored",
+ "crossterm",
+ "ctrlc",
+ "epub-builder",
+ "flate2",
+ "futures",
+ "html2text",
+ "indicatif",
+ "memmap2",
+ "moka",
+ "once_cell",
+ "regex",
+ "reqwest",
+ "scraper",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tiny_http",
+ "tokio",
+ "tracing",
+ "tracing-appender",
+ "tracing-subscriber",
+ "url",
+ "visdom",
+]
+
+[[package]]
 name = "nu-ansi-term"
 version = "0.50.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1974,41 +2009,6 @@ name = "simd-adler32"
 version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d66dc143e6b11c1eddc06d5c423cfc97062865baf299914ab64caa38182078fe"
-
-[[package]]
-name = "singlefile-rs"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "base64",
- "bincode",
- "chrono",
- "colored",
- "crossterm",
- "ctrlc",
- "epub-builder",
- "flate2",
- "futures",
- "html2text",
- "indicatif",
- "memmap2",
- "moka",
- "once_cell",
- "regex",
- "reqwest",
- "scraper",
- "serde",
- "serde_json",
- "tempfile",
- "tiny_http",
- "tokio",
- "tracing",
- "tracing-appender",
- "tracing-subscriber",
- "url",
- "visdom",
-]
 
 [[package]]
 name = "siphasher"

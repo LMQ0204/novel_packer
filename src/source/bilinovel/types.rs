@@ -124,7 +124,7 @@ impl fmt::Display for BiliNovel {
             writeln!(f, "\n{}\n", self.description)?;
         }
         for (i, v) in self.volume.iter().enumerate() {
-            writeln!(f, "[{}]\t{}", i, v.name)?;
+            writeln!(f, "[{}]\t{}", i, format!("{}",v.name).underline())?;
         }
         Ok(())
     }
