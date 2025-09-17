@@ -269,12 +269,6 @@ impl Novel {
             info!("创建临时文件用来并发下载章节");
             let mut files_lock = temp_files.lock().await;
             for _ in 0..max_concurrent {
-                match std::fs::create_dir_all("./temp/temp") {
-                    Ok(_) => {}
-                    Err(e) => {
-                        eprintln!("目录创建失败：{}", e)
-                    }
-                }
                 let temp_file = NamedTempFile::new_in("./temp/temp")?;
                 files_lock.push_back(temp_file);
             }

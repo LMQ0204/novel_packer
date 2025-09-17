@@ -12,6 +12,10 @@ use tracing_subscriber::{EnvFilter, fmt, prelude::*};
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    std::fs::create_dir_all("./temp/temp")?;
+    std::fs::create_dir_all("./temp/logs")?;
+    std::fs::create_dir_all("./temp/images")?;
+    std::fs::create_dir_all("./temp/download")?;
     init_url_parser();
 
     // init_logger();
