@@ -2,7 +2,7 @@
   "executable_path": "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
   "port": 9223,
   "user_data_dir": "user data",
-  "extensions":"extensions",
+  "extensions": "extensions",
   "headless": false,
   "additional_args": [
     "--disable-dev-shm-usage",
@@ -17,8 +17,7 @@
     "--disable-notifications",
     "--excludeSwitches=enable-automation",
     "--disable-blink-features=AutomationControlled",
-    "--lang=zh-CN",
-    "--headless=new"
+    "--lang=zh-CN"
   ],
   "startup_timeout": 30,
   "health_check_interval": 5

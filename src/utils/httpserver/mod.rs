@@ -14,7 +14,7 @@ pub use controller::Controller;
 pub use anyhow::Result;
 
 use once_cell::sync::OnceCell;
-use std::sync::Mutex;
+use std::{collections::HashMap, sync::Mutex};
 
 // 全局控制器实例
 static CONTROLLER: OnceCell<Mutex<Option<Controller>>> = OnceCell::new();
@@ -123,6 +123,71 @@ where
     let controller_guard = get_controller()?;
     if let Some(controller) = controller_guard.as_ref() {
         controller.update_config(updater)
+    } else {
+        Err(anyhow::anyhow!("Controller not available"))
+    }
+}
+
+/// 设置整个图片HashMap
+pub fn set_images(new_images: HashMap<String, ImageData>) -> Result<()> {
+    let controller_guard = get_controller()?;
+    if let Some(controller) = controller_guard.as_ref() {
+        controller.set_images(new_images);
+        Ok(())
+    } else {
+        Err(anyhow::anyhow!("Controller not available"))
+    }
+}
+
+/// 批量添加或更新图片
+pub fn add_or_update_images(images: HashMap<String, ImageData>) -> Result<()> {
+    let controller_guard = get_controller()?;
+    if let Some(controller) = controller_guard.as_ref() {
+        controller.add_or_update_images(images);
+        Ok(())
+    } else {
+        Err(anyhow::anyhow!("Controller not available"))
+    }
+}
+
+/// 从文件加载图片数据
+pub fn load_images_from_file(filename: &str) -> Result<()> {
+    let controller_guard = get_controller()?;
+    if let Some(controller) = controller_guard.as_ref() {
+        controller.load_images_from_file(filename)
+    } else {
+        Err(anyhow::anyhow!("Controller not available"))
+    }
+}
+
+/// 保存图片数据到文件
+pub fn save_images_to_file(filename: &str, compression_level: u32) -> Result<()> {
+    let controller_guard = get_controller()?;
+    if let Some(controller) = controller_guard.as_ref() {
+        controller.save_images_to_file(filename, compression_level)
+    } else {
+        Err(anyhow::anyhow!("Controller not available"))
+    }
+}
+
+/// 将图片数据保存为JSON格式的文本文件
+pub fn save_images_to_json_file(filename: &str, pretty: bool) -> Result<()> {
+    let controller_guard = get_controller()?;
+    if let Some(controller) = controller_guard.as_ref() {
+        controller.save_images_to_json_file(filename, pretty)
+    } else {
+        Err(anyhow::anyhow!("Controller not available"))
+    }
+}
+
+/// 过滤图片数据
+pub fn filter_images<F>(predicate: F) -> Result<HashMap<String, ImageData>>
+where
+    F: Fn(&String, &ImageData) -> bool,
+{
+    let controller_guard = get_controller()?;
+    if let Some(controller) = controller_guard.as_ref() {
+        Ok(controller.filter_images(predicate))
     } else {
         Err(anyhow::anyhow!("Controller not available"))
     }

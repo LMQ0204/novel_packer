@@ -8,3 +8,4 @@ pub mod browser;
 // pub mod html;
 pub mod epub;
 pub mod httpserver;
+pub mod input;

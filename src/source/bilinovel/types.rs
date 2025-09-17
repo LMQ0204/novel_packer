@@ -19,9 +19,12 @@ pub struct  NovelConfig {
     pub max_concurrent: usize,
     pub check_rounds: usize,
     pub css: String,
+    pub compression_level: u32,
+    pub check_concurrent: usize,
+    pub save_interval: usize
 }
 
-#[derive(Default, Debug, Clone)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct Novel {
     pub url: String,
     pub name: String,
@@ -30,9 +33,10 @@ pub struct Novel {
     pub tags: Option<Tags>,
     pub description: String,
     pub chapters: Vec<Chapter>,
+    pub pending_chapter_indices: Vec<usize>, // 新增：待下载的章节索引
 }
 
-#[derive(Default, Debug, Clone)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct Chapter {
     pub url: String,
     pub title: String,
@@ -40,7 +44,7 @@ pub struct Chapter {
     pub image:Vec<String>
 }
 
-#[derive(Default, Debug, Clone)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct Tags {
     pub state: String,
     pub label: Vec<String>,

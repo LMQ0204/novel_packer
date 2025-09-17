@@ -1,0 +1,14 @@
+{
+  "regex_pattern": [
+    "^https://img3\\.readpai\\.com/.*",
+    "^https://www\\.linovelib\\.com/files/article/image/.*",
+    "https://telegra.ph/file/09e2e7d29e44de99f8586.jpg",
+    "https://i.meee.com.tw/IbGz7rk.png"
+  ],
+  "output_path": "./output/images",
+  "wait_time": 500,
+  "send_to_rust": true,
+  "server_port": 8080,
+  "save_to_file": false,
+  "open_download": true
+}

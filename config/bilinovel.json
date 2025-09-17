@@ -1,5 +1,8 @@
 {
-  "max_concurrent": 15,
+  "max_concurrent": 10,
   "check_rounds": 100,
-  "css": "./assets/epub-style.css"
+  "css": "./assets/epub-style.css",
+  "compression_level": 6,
+  "check_concurrent":8,
+  "save_interval":20
 }

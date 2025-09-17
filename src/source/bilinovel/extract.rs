@@ -17,6 +17,7 @@ pub fn extract_chapter(html: &str, selector: &str, src_name: &str, remove_vec: V
     items.filter("p.sf-hidden").remove();
     
     for se in remove_vec {
+        let items = text.children("");
         items.filter(se).remove();
     }
     // items.filter_by(handle)
