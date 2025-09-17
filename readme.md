@@ -74,6 +74,9 @@ git clone https://github.com/LMQ0204/novel_packer.git
 
 该工具本质上是自动开启一个浏览器，然后打开页面进行下载。`max_concurrent`的值会直接决定打开的页面数量，对于内存影响很大。
 
+### 浏览器进程
+
+程序非正常关闭，比如使用Ctrl+C退出，会残留浏览器实例，需要手动关闭。
 ### 修改小说
 
 解压`epub`进行修改。
