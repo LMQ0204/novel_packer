@@ -34,14 +34,14 @@ pub struct Novel {
     pub tags: Option<Tags>,
     pub description: String,
     pub chapters: Vec<Chapter>,
-    pub pending_chapter_indices: Vec<usize>, // 新增：待下载的章节索引
+    pub pending_chapter_indices: Vec<usize>, 
 }
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct Chapter {
     pub url: String,
     pub title: String,
-    pub context: Vec<String>, //???
+    pub context: Vec<String>, 
     pub image:Vec<String>
 }
 

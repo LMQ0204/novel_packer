@@ -78,6 +78,7 @@ pub mod down {
             }
         }
     }
+    
     pub async fn download_from_file(file: &str, options: DynamicConfig) -> Result<Vec<Value>> {
         download_from_url(&format!("--urls-file={}", file), options).await
     }

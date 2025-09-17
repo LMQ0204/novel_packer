@@ -12,6 +12,7 @@ use regex::Regex;
 use serde_json::json;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::Arc;
+use tokio::fs;
 
 use crate::source::bilinovel::extract::{
     build_chapter, extract_author, extract_chapter, extract_description, extract_tags,
@@ -106,7 +107,7 @@ impl BiliNovel {
         Ok(())
     }
 
-    ///通过rust服务器解析页面
+    ///通过rust客户器解析页面
     pub async fn parser_book_http_async(&mut self, config: RequestConfig) -> Result<()> {
         let client = AsyncHttpClient::new(config).map_err(|e| {
             error!("创建客户端失败: {}", e);
@@ -269,6 +270,12 @@ impl Novel {
             info!("创建临时文件用来并发下载章节");
             let mut files_lock = temp_files.lock().await;
             for _ in 0..max_concurrent {
+                match std::fs::create_dir_all("./temp/temp") {
+                    Ok(_) => {}
+                    Err(e) => {
+                        eprintln!("目录创建失败：{}", e)
+                    }
+                }
                 let temp_file = NamedTempFile::new_in("./temp/temp")?;
                 files_lock.push_back(temp_file);
             }

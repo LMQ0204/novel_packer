@@ -3,7 +3,7 @@ use crate::utils::terminal::clear_previous_line;
 use anyhow::{Result, anyhow};
 use url::Url;
 
-// 获取url对应的结构体
+/// 获取url对应的结构体
 pub fn get_struct_by_url(url: &str) -> Result<Box<dyn Singlefile>> {
     let parsed_url = Url::parse(url).map_err(|e| anyhow!("URL解析失败: {}", e))?;
 
@@ -20,7 +20,7 @@ pub fn get_struct_by_url(url: &str) -> Result<Box<dyn Singlefile>> {
     Err(anyhow!("不支持的网站: {}", host))
 }
 
-//从输入读取url
+///从输入读取url
 pub fn read_url_from_stdin() -> String {
     let use_input = loop {
         println!("请输入URL(回车确定)[目前只支持哔哩轻小说]:");
@@ -48,7 +48,7 @@ pub fn read_url_from_stdin() -> String {
     use_input
 }
 
-//返回url对应的结构体
+///返回url对应的结构体
 pub fn get_from_url() -> Box<dyn Singlefile> {
     // let mut stdout = std::io::stdout();
     println!("\n");
