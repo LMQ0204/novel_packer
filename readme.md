@@ -8,6 +8,7 @@
 轻小说打包器，可以将支持的轻小说网站中的小说打包成EPUB格式，包含插图，并自动生成目录页。
 这个工具本质上是控制浏览器自动化进行操作，所以可能内存占用会比较高。
 
+使用前先确保默认文件夹中安装了 Chrome 或基于 Chromium 的浏览器。否则你需要在`./config/browser.json`和`./config/browser_check.json`中指定你的浏览器路径。
 ### 目前支持的小说网站
  - [哔哩轻小说](https://www.linovelib.com)
 
