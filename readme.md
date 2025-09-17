@@ -14,9 +14,9 @@
 
 ## 下载
 
-
+下载此项目并解压。
 ```
-git clone 
+git clone https://github.com/LMQ0204/novel_packer.git
 ```
 
 ## 使用
