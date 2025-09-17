@@ -25,9 +25,13 @@ git clone https://github.com/LMQ0204/novel_packer.git
 
 ![01](./images/novel.png)
 
+可以通过进度条直观地了解到当前的下载进度。
+
+![02](./images/下载进度.png)
+
 还支持中断下载或者检查过程并保存状态，然后下一次可以从文件恢复保存的状态。
 
-![02](./images/恢复下载.png)
+![03](./images/恢复下载.png)
 
 支持自定义`epub`的`css`样式。我推荐将`css`文件放在`./assets`里面，并在`./config/bilinovel.json`的`"css"`中指明它的路径。
 

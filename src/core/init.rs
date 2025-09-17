@@ -25,8 +25,3 @@ pub fn init_url_handlers() {
 pub fn init_url_parser() {
     init_url_handlers();
 }
-
-/// 初始化日志系统
-pub fn init_logger() {
-    tracing_subscriber::fmt::init();
-}
