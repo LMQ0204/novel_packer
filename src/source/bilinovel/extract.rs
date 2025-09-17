@@ -238,3 +238,44 @@ pub fn extract_volume(html: &str, selector: &str) -> Result<Vec<Novel>> {
     }
     Ok(res)
 }
+
+///提取所有的章节
+pub fn extract_volume_catalog(html: &str, selector: &str) -> Result<Vec<Novel>> {
+    let html = Html::parse_document(html);
+    let volume_selector = Selector::parse("div.volume").map_err(|e| {
+        error!("{}", e);
+        anyhow!("{e}")
+    })?;
+    let volume_selector_url = Selector::parse("a.volume-cover").map_err(|e| {
+        error!("{}", e);
+        anyhow!("{e}")
+    })?;
+    let volume_selector_name = Selector::parse("div.volume-info>h2").map_err(|e| {
+        error!("{}", e);
+        anyhow!("{e}")
+    })?;
+    let selector = Selector::parse(selector).map_err(|e| {
+        error!("{}", e);
+        anyhow!("{e}")
+    })?;
+    let mut res = Vec::new();
+    if let Some(element) = html.select(&selector).next() {
+        res = element
+            .select(&volume_selector)
+            .filter_map(|e| {
+                let mut url = e.select(&volume_selector_url).next().map_or_else(|| String::new(), |e| e.value().attr("href").unwrap_or_default().to_string());
+                // let mut url = e.value().attr("href").unwrap_or_default().to_string();
+                if let Ok(full_url) = Url::parse(&url) {
+                    url = full_url.to_string();
+                } else if Url::parse(&format!("https://www.linovelib.com{}", url)).is_ok() {
+                    url = format!("https://www.linovelib.com{}", url);
+                }
+
+                // let name = e.value().attr("title").unwrap_or_default().to_string();
+                let name = e.select(&volume_selector_name).next().map_or_else(|| String::new(), |e| e.text().collect::<String>());
+                Some(Novel::new(url, name))
+            })
+            .collect::<Vec<_>>();
+    }
+    Ok(res)
+}

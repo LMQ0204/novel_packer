@@ -23,11 +23,3 @@ pub fn clear_previous_line(num: u16) -> io::Result<()> {
 
     Ok(())
 }
-
-// pub fn clear_all() -> io::Result<()> {
-//     let mut stdout = io::stdout();
-//     // execute!(stdout, MoveTo(0,0))?;
-//     execute!(stdout, Clear(ClearType::FromCursorUp))?;
-
-//     Ok(())
-// }

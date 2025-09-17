@@ -36,6 +36,10 @@ git clone
 ## 使用
 双击exe打开，或者使用命令提示符打开即可。然后根据提示进行操作。
 
+![01](./images/novel.png)
+
+还支持
+
 ### 基础配置
 `config`文件夹下存储着运行的相关配置。我不建议你去随意更改，除非你真的知道这些配置的作用。但是有几个选项可以根据个人意愿稍作修改。
 
@@ -49,18 +53,11 @@ git clone
 
 除了上述配置外，还有比较复杂的配置。
 
-`config/novel.json`、`config/chaoter.json`、`config/images.json`分别储存着下载小说页面、章节页面以及重新下载缺少图片的页面时，所使用的`single-file`命令行工具的配置，最好不要随意改动，详见AAAAA。
+`config/novel.json`、`config/chaoter.json`、`config/images.json`分别储存着下载小说页面、章节页面以及重新下载缺少图片或缺页的页面时，所使用的`single-file`命令行工具的配置，最好不要随意改动，详见AAAAA。
 
 `config/browser.json`存储的是打开浏览器实例时的命令行选项。
 
 `config/http.json`存储的是rust服务器的相关配置，主要作用是接受浏览器扩展上传的图片数据。其中`regex_pattern`用来筛选图片的url，匹配的图片会被保留。`open_download`表示使用开启扩展的图片下载功能。`server_port`表示服务器开启的端口号。`send_to_rust`表示是否将图片数据上传到本地服务器。`wait_time`表示下载间隔。`save_to_file`表示是否将图片保存到本地。`output_path`表示图片的保存路径，这个选项是在`save_to_file`为`true`时有用。
-
-
-![01](./images/img.png)
-
-![02](./images/img_1.png)
-
-
 
 ## 常见问题
 
@@ -88,6 +85,15 @@ git clone
 cargo build --release
 ```
 
+## 贡献
+
+我在项目中留下了许多未使用的代码或函数，其目的是希望其他人能够方便地为项目作贡献及修改。
+
+## 依赖及参考的代码或工具
+
+[single-file-cil](https://github.com/gildas-lormeau/single-file-cli)：大多数下载是在这个工具的基础上进行的。
+
+[lite-image-downloader](https://github.com/belaviyo/lite-image-downloader)：下载图片的功能是基于这个进行修改，然后将图片传输到本地服务器。
 
 ## Star History
 

@@ -15,7 +15,7 @@ use std::sync::Arc;
 
 use crate::source::bilinovel::extract::{
     build_chapter, extract_author, extract_chapter, extract_description, extract_tags,
-    extract_volume,
+    extract_volume, extract_volume_catalog,
 };
 use crate::source::bilinovel::types::{Chapter, Novel};
 use crate::utils::download::downl::down::download_from_url;
@@ -38,7 +38,7 @@ pub fn get_bilinovel(url: &str) -> Box<BiliNovel> {
         Err(e) => {
             error!("{}", e);
             eprintln!("解析正则表达式错误，直接返回链接 {}", e);
-            return Box::new(BiliNovel::new(url.to_string()));
+            return Box::new(BiliNovel::new(url.to_string(), String::new()));
         }
     };
 
@@ -49,13 +49,13 @@ pub fn get_bilinovel(url: &str) -> Box<BiliNovel> {
         .unwrap_or("");
     if id.is_empty() {
         error!("没有提取到书籍id,直接返回链接：{}", url);
-        Box::new(BiliNovel::new(url.to_string()))
+        Box::new(BiliNovel::new(url.to_string(), String::new()))
     } else {
         info!("正确提取到书籍id:{}", id);
-        Box::new(BiliNovel::new(format!(
-            "https://www.linovelib.com/novel/{}.html",
-            id
-        )))
+        Box::new(BiliNovel::new(
+            format!("https://www.linovelib.com/novel/{}.html", id),
+            format!("https://www.linovelib.com/novel/{}/catalog", id),
+        ))
     }
 }
 
@@ -147,6 +147,25 @@ impl BiliNovel {
             extract_description(&book_response.body, "div.book-info")?;
         self.tags = Some(extract_tags(&book_response.body, "div.book-label")?);
         self.volume = extract_volume(&book_response.body, "div.book-vol-chapter")?;
+        if self.volume.is_empty() {
+            let catalog = client.get(&self.catalog).await.map_err(|e| {
+                error!("发送请求失败：{}", e);
+                anyhow!("发送请求失败：{}", e)
+            })?;
+
+            if !catalog.is_success() {
+                error!(
+                    "获取失败: url:{},\tstatus:{}",
+                    book_response.url, book_response.status
+                );
+                return Err(anyhow!(
+                    "获取失败: url:{},\tstatus:{}",
+                    book_response.url,
+                    book_response.status
+                ));
+            };
+            self.volume = extract_volume_catalog(&catalog.body, "div#volume-list")?;
+        }
 
         Ok(())
     }

@@ -16,39 +16,10 @@ use crate::utils::terminal::clear_previous_line;
 use anyhow::Result;
 use async_trait::async_trait;
 use crossterm::style::Stylize;
-use regex::Regex;
 use serde_json::json;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tracing::{error, info}; // 导入宏
-
-///从链接获取书籍号
-pub fn get_bilinovel(url: &str) -> Box<BiliNovel> {
-    let re = match Regex::new("/novel/(\\d+)") {
-        Ok(v) => v,
-        Err(e) => {
-            error!("{}", e);
-            eprintln!("解析正则表达式错误，直接返回链接 {}", e);
-            return Box::new(BiliNovel::new(url.to_string()));
-        }
-    };
-
-    let id = re
-        .captures(url)
-        .and_then(|ca| ca.get(1))
-        .map(|v| v.as_str())
-        .unwrap_or("");
-    if id.is_empty() {
-        error!("没有提取到书籍id,直接返回链接：{}", url);
-        Box::new(BiliNovel::new(url.to_string()))
-    } else {
-        info!("正确提取到书籍id:{}", id);
-        Box::new(BiliNovel::new(format!(
-            "https://www.linovelib.com/novel/{}.html",
-            id
-        )))
-    }
-}
 
 #[async_trait]
 impl Singlefile for BiliNovel {
@@ -182,6 +153,7 @@ impl Singlefile for BiliNovel {
 
                     println!("\n");
                     if !already {
+                        println!("开始下载[按q中止下载]：{}", v.name.to_owned().dark_yellow());
                         match v
                             .parser_by_singlefile(
                                 config.clone(),
@@ -271,7 +243,7 @@ impl Singlefile for BiliNovel {
                             }
 
                             println!(
-                                "开始检查章节[没有问题将提前退出]：第{}/{}轮检查……",
+                                "开始检查章节[没有问题将提前退出，按q退出检查]：第{}/{}轮检查……",
                                 i, max_echo
                             );
                             match v

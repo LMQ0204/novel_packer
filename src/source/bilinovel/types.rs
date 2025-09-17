@@ -3,6 +3,7 @@
 #[derive(Default)]
 pub struct BiliNovel {
     pub url: String,
+    pub catalog: String,
     pub book_name: String,
     pub author: String,
     pub tags: Option<Tags>,
@@ -78,9 +79,10 @@ impl Novel {
 }
 
 impl BiliNovel {
-    pub fn new(url: String) -> Self {
+    pub fn new(url: String, catalog: String) -> Self {
         let mut res = BiliNovel::default();
         res.url = url;
+        res.catalog = catalog;
         res
     }
 }
