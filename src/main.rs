@@ -16,7 +16,7 @@ async fn main() -> Result<()> {
     std::fs::create_dir_all("./temp/logs")?;
     std::fs::create_dir_all("./temp/images")?;
     std::fs::create_dir_all("./temp/download")?;
-    std::fs::create_dir_all("./temp/output")?;
+    std::fs::create_dir_all("./output")?;
     init_url_parser();
 
     // init_logger();
