@@ -14,5 +14,5 @@
   "load-deferred-images-keep-zoom-level": true,
   "load-deferred-images-before-frames": true,
   "browser-start-minimized": true,
-  "load-deferred-images-max-idle-time": 30
+  "load-deferred-images-max-idle-time": 60
 }
