@@ -12,7 +12,6 @@ use regex::Regex;
 use serde_json::json;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::Arc;
-use tokio::fs;
 
 use crate::source::bilinovel::extract::{
     build_chapter, extract_author, extract_chapter, extract_description, extract_tags,
