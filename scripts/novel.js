@@ -19,11 +19,11 @@
     WAIT_AFTER_EXECUTION: 1000,
     SCROLL_DELAY: 1000,
     SCROLL_BEHAVIOR: "smooth",
-    SCROLL_SPEED: 2500, // 默认1000像素/秒
+    SCROLL_SPEED: 2500, // 默认2500像素/秒
     MAX_WAIT_TIME: 180000, // 全局超时（180秒）
     DOWNLOAD_TIMEOUT: 120000, // 下载超时（120秒）
     API_CHECK_TIMEOUT: 2000, // API检测超时（2秒）
-    DOM_OPERATION_TIMEOUT: 15000, // DOM操作超时（20秒）
+    DOM_OPERATION_TIMEOUT: 15000, // DOM操作超时（15秒）
     SCROLL_TIMEOUT: 30000, // 滚动超时（30秒）
     AD_SELECTORS: [
       "ins.adsbygoogle",
