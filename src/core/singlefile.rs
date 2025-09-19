@@ -11,7 +11,7 @@ pub trait Singlefile: Send + Sync {
         config.load(PathBuf::from("./config/config.json")).unwrap_or_else(|e| {
             warn!("{}",e);
         });
-        check_single_file::check_exe("single-file.exe", config)
+        check_single_file::check_exe("./extra/single-file.exe", config)
             .map_err(|s| anyhow!("{}", s))
             
     }
