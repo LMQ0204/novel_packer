@@ -4,20 +4,16 @@ use std::process::Command;
 
 use tracing::{error};
 
-use crate::utils::config::DynamicConfig;
-
 /// 检查可执行文件的状态，返回Result
 /// Ok(()) 表示存在且可运行
 /// Err(&str) 包含具体错误信息："not found" 或 "exists but cannot run"
-pub fn check_exe(exe_name: &str, config: DynamicConfig) -> Result<(), String> {
+pub fn check_exe(exe_name: &str) -> Result<(), String> {
     // 检查文件是否存在（当前目录或PATH中）
     let exists = {
         // 检查当前目录
         if fs::metadata(exe_name).is_ok() {
             true
-        } else if config.get_executable_path().is_some() {
-            true
-        } else {
+        }else {
             // 检查PATH中的目录
             let path_env = match env::var("PATH") {
                 Ok(val) => val,
@@ -76,7 +72,7 @@ mod tests {
         // 测试一个肯定不存在的文件
         let non_existent_exe = "this_file_should_never_exist_1234.exe";
         assert_eq!(
-            check_exe(non_existent_exe, DynamicConfig::new()),
+            check_exe(non_existent_exe),
             Err(format!("找不到{}!", non_existent_exe))
         );
     }
@@ -128,7 +124,7 @@ mod tests {
 
         // 检查结果
         assert_eq!(
-            check_exe(exe_name, DynamicConfig::new()),
+            check_exe(exe_name),
             Err(format!("{}存在但是无法正常运行!",&exe_name))
         );
 
@@ -148,6 +144,6 @@ mod tests {
         #[cfg(target_os = "macos")]
         let test_exe = "ls"; // macOS目录列表命令
 
-        assert_eq!(check_exe(test_exe, DynamicConfig::new()), Ok(()));
+        assert_eq!(check_exe(test_exe), Ok(()));
     }
 }
