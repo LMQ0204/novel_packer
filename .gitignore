@@ -3,5 +3,5 @@
 /output
 .vscode
 /user data
-
+*.zip
 release.bat
